@@ -1,0 +1,17 @@
+{"properties": [
+  {
+    "name": "server.base-url",
+    "type": "java.lang.String",
+    "description": "A description for 'server.base-url'"
+  },
+  {
+    "name": "server.secret-key",
+    "type": "java.lang.String",
+    "description": "A description for 'server.secret-key'"
+  },
+  {
+    "name": "client.url",
+    "type": "java.lang.String",
+    "description": "A description for 'client.url'"
+  }
+]}

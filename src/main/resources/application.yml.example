@@ -1,0 +1,28 @@
+server:
+    base-url: https://host
+    port: 8080
+    secret-key: 
+    error:
+        include-message: always
+
+client:
+    url: http://clientHost
+
+spring:
+    application:
+        name: e-sign
+    datasource:
+        driver-class-name: com.mysql.cj.jdbc.Driver
+        url: jdbc:mysql://mysqlHost/e-sign
+        username: 
+        password: 
+    jpa:
+        hibernate:
+            ddl-auto: update
+        show-sql: true
+        open-in-view: true
+        properties:
+            hibernate:
+                format-sql: true
+        database: mysql
+        database-platform: org.hibernate.dialect.MySQL8Dialect
