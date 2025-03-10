@@ -33,4 +33,14 @@ public class FileStorageService {
         return fileUrl;
     }
 
+    public void deleteByUrl(String fileUrl) throws IOException {
+        if (fileUrl != null) {
+            String filePath = fileUrl.replace(BASE_URL + "/api/storage", PathComponent.STORAGE_PATH);
+            File fileTarget = new File(filePath);
+            if (fileTarget.exists()) {
+                fileTarget.delete();
+            }
+        } 
+    }
+
 }

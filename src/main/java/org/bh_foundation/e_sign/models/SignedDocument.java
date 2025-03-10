@@ -36,8 +36,8 @@ public class SignedDocument {
     @Column(name = "title", nullable = false)
     private String title;
     
-    @Column(name = "bytes", nullable = false, unique = true)
-    private String bytes;
+    @Column(name = "url", nullable = false, unique = true)
+    private String url;
     
     @Column(name = "enabled", nullable = false)
     private boolean enabled;

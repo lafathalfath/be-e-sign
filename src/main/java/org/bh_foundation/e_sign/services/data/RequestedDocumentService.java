@@ -7,8 +7,10 @@ import java.util.Set;
 
 import org.bh_foundation.e_sign.dto.ResponseDto;
 import org.bh_foundation.e_sign.models.RequestedDocument;
+import org.bh_foundation.e_sign.models.SignedDocument;
 import org.bh_foundation.e_sign.models.User;
 import org.bh_foundation.e_sign.repository.RequestedDocumentRepository;
+import org.bh_foundation.e_sign.repository.SignedDocumentRepository;
 import org.bh_foundation.e_sign.repository.UserRepository;
 import org.bh_foundation.e_sign.services.auth.JwtService;
 import org.bh_foundation.e_sign.services.storage.FileStorageService;
@@ -23,6 +25,7 @@ import jakarta.servlet.http.HttpServletRequest;
 public class RequestedDocumentService {
     
     private final RequestedDocumentRepository requestedDocumentRepository;
+    private final SignedDocumentRepository signedDocumentRepository;
     private final JwtService jwtService;
     private final HttpServletRequest servletRequest;
     private final UserRepository userRepository;
@@ -33,13 +36,27 @@ public class RequestedDocumentService {
         JwtService jwtService,
         HttpServletRequest servletRequest,
         UserRepository userRepository,
-        FileStorageService fileStorageService
+        FileStorageService fileStorageService,
+        SignedDocumentRepository signedDocumentRepository
     ) {
         this.requestedDocumentRepository = requestedDocumentRepository;
         this.jwtService = jwtService;
         this.servletRequest = servletRequest;
         this.userRepository = userRepository;
         this.fileStorageService = fileStorageService;
+        this.signedDocumentRepository = signedDocumentRepository;
+    }
+
+    public ResponseDto<?> getAll() {
+        Long userId = jwtService.extractUserId(servletRequest.getHeader("Authorization"));
+        User user = userRepository.findById(userId).orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized"));
+        Set<RequestedDocument> documents = user.getRequestDocuments();
+        return new ResponseDto<>(200, "OK", documents);
+    }
+
+    public ResponseDto<?> getById(Long id) {
+        RequestedDocument requestedDocument = requestedDocumentRepository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "not found"));
+        return new ResponseDto<>(200, "OK", requestedDocument);
     }
 
     public ResponseDto<?> send(String title, boolean orderSign, MultipartFile document, List<Long> signers) throws IOException {
@@ -57,9 +74,15 @@ public class RequestedDocumentService {
         requestedDocument.setOrderSign(orderSign);
         requestedDocument.setUsers(signerSet);
         requestedDocument.setUrl(fileUrl);
-
-        return new ResponseDto<>(201, "document requested", 
-        requestedDocumentRepository.save(requestedDocument));
+        requestedDocument = requestedDocumentRepository.save(requestedDocument);
+        return new ResponseDto<>(201, "document requested", requestedDocument);
     }
+
+    // public ResponseDto<?> delete(Long id) {
+    //     RequestedDocument requestedDocument = requestedDocumentRepository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "not found"));
+    //     String url = requestedDocument.getUrl();
+    //     SignedDocument signedDocument = signedDocumentRepository.findOne(url);
+    //     return new ResponseDto<>(200, "OK", requestedDocument);
+    // }
 
 }

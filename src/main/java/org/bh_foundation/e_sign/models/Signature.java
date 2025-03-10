@@ -33,8 +33,11 @@ public class Signature {
     @Column(name = "passphrase", nullable = false)
     private String passphrase;
 
-    @Column(name = "bytes", nullable = false, columnDefinition = "TEXT")
-    private String bytes;
+    @Column(name = "bytes", nullable = false, columnDefinition = "LONGTEXT")
+    private byte[] bytes;
+
+    @Column(name = "type", nullable = false)
+    private String type;
 
     @Column(name = "expire", nullable = false)
     @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")

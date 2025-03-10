@@ -10,6 +10,7 @@ import org.bh_foundation.e_sign.repository.UserRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -22,17 +23,20 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
     private final HttpServletRequest servletRequest;
+    private final PasswordEncoder passwordEncoder;
 
     public AuthService(
         UserRepository userRepository,
         AuthenticationManager authenticationManager,
         JwtService jwtService,
-        HttpServletRequest servletRequest
+        HttpServletRequest servletRequest,
+        PasswordEncoder passwordEncoder
     ) {
         this.userRepository = userRepository;
         this.authenticationManager = authenticationManager;
         this.jwtService = jwtService;
         this.servletRequest = servletRequest;
+        this.passwordEncoder = passwordEncoder;
     }
 
     public ResponseDto<?> getUsers() {
@@ -47,7 +51,7 @@ public class AuthService {
     public AuthenticationResponseDto register(User request) {
         User user = new User();
         user.setUsername(request.getUsername());
-        user.setPassword(request.getPassword());
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setEmail(request.getEmail());
         user.setRole(Role.USER);
         user = userRepository.save(user);
