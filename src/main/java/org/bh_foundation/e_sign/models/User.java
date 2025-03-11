@@ -56,7 +56,7 @@ public class User implements UserDetails {
     @Column(name = "role", nullable = false)
     private Role role;
 
-    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private Signature signature;
 
     @OneToMany(mappedBy = "applicant", cascade = CascadeType.ALL, orphanRemoval = true)

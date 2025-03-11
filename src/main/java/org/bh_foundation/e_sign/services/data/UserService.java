@@ -20,27 +20,34 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
 
     public UserService(
-            UserRepository userRepository, JwtService jwtService, HttpServletRequest servletRequest) {
+            UserRepository userRepository, JwtService jwtService, HttpServletRequest servletRequest,
+            PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.jwtService = jwtService;
         this.servletRequest = servletRequest;
-        this.passwordEncoder = null;
+        this.passwordEncoder = passwordEncoder;
     }
 
     public ResponseDto<?> uppdateProfile(String username, String email) {
         Long userId = jwtService.extractUserId(servletRequest.getHeader("Authorization"));
-        User user = userRepository.findById(userId).orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized"));
-        if (username == null && email == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Bad Request");
-        if (username != null) user.setUsername(username);
-        if (email != null) user.setEmail(email);
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized"));
+        if (username == null && email == null)
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Bad Request");
+        if (username != null)
+            user.setUsername(username);
+        if (email != null)
+            user.setEmail(email);
         userRepository.save(user);
         return new ResponseDto<>(200, "updated", null);
     }
 
     public ResponseDto<?> resetPassword(String oldPassword, String newPassword) {
         Long userId = jwtService.extractUserId(servletRequest.getHeader("Authorization"));
-        User user = userRepository.findById(userId).orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "unauthorized"));
-        if (!passwordEncoder.matches(oldPassword, user.getPassword())) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "wrong password");
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "unauthorized"));
+        if (!passwordEncoder.matches(oldPassword, user.getPassword()))
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "wrong password");
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
         return new ResponseDto<>(200, "updated", null);

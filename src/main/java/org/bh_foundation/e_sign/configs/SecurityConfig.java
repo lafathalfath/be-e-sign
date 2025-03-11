@@ -59,16 +59,17 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(req -> req
-                        .requestMatchers(
-                                "/api/signature/**",
-                                "/api/document/**",
-                                "/api/profile/**")
-                        .authenticated()
-                        .requestMatchers(
-                                "/api/auth/**")
-                        .permitAll()
+                        // .requestMatchers(
+                        // "/api/signature/**",
+                        // "/api/document/**",
+                        // "/api/profile/**")
+                        // .authenticated()
+                        // .requestMatchers(
+                        // "/api/auth/**")
                         .anyRequest()
-                        .denyAll())
+                        .permitAll()
+                // .denyAll()
+                )
                 .userDetailsService(userDetailsImplement)
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();

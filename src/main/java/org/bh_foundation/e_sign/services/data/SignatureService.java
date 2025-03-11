@@ -91,7 +91,9 @@ public class SignatureService {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "signature not found");
         if (!passwordEncoder.matches(passphrase, signature.getPassphrase()))
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "invalid passphrase");
-        signatureRepository.delete(signature);
+        // signatureRepository.delete(signature);
+        user.setSignature(null);
+        userRepository.save(user);
         return new ResponseDto<>(204, "signature deleted", null);
     }
 

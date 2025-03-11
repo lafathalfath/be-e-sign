@@ -33,7 +33,7 @@ public class Signature {
     @Column(name = "passphrase", nullable = false)
     private String passphrase;
 
-    @Column(name = "bytes", nullable = false, columnDefinition = "LONGTEXT")
+    @Column(name = "bytes", nullable = false, columnDefinition = "LONGBLOB")
     private byte[] bytes;
 
     @Column(name = "type", nullable = false)

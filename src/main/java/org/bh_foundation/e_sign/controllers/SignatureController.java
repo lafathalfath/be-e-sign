@@ -42,7 +42,7 @@ public class SignatureController {
 
     @DeleteMapping("/delete")
     public ResponseEntity<?> delete(@RequestParam String passphrase) {
-        return ResponseEntity.status(204).body(signatureService.delete(passphrase));
+        return ResponseEntity.ok(signatureService.delete(passphrase));
     }
 
 }
