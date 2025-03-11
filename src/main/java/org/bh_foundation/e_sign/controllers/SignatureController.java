@@ -16,7 +16,7 @@ import org.springframework.web.multipart.MultipartFile;
 @RestController
 @RequestMapping("/api/signature")
 public class SignatureController {
-    
+
     private final SignatureService signatureService;
 
     public SignatureController(SignatureService signatureService) {
@@ -30,9 +30,8 @@ public class SignatureController {
 
     @PostMapping("/store")
     public ResponseEntity<?> store(
-        @RequestParam String passphrase,
-        @RequestParam MultipartFile sign
-    ) throws IOException {
+            @RequestParam String passphrase,
+            @RequestParam MultipartFile sign) throws IOException {
         return ResponseEntity.status(201).body(signatureService.store(passphrase, sign));
     }
 
@@ -41,9 +40,9 @@ public class SignatureController {
         return ResponseEntity.status(200).body(signatureService.extend(passphrase));
     }
 
-    @DeleteMapping("/destroy")
-    public ResponseEntity<?> destroy(@RequestParam String passphrase) {
-        return ResponseEntity.status(204).body(signatureService.destroy(passphrase));
+    @DeleteMapping("/delete")
+    public ResponseEntity<?> delete(@RequestParam String passphrase) {
+        return ResponseEntity.status(204).body(signatureService.delete(passphrase));
     }
-    
+
 }

@@ -25,9 +25,9 @@ import lombok.NoArgsConstructor;
 @Entity
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "signed_document")
-public class SignedDocument {
-    
+@Table(name = "document")
+public class Document {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
@@ -35,17 +35,20 @@ public class SignedDocument {
 
     @Column(name = "title", nullable = false)
     private String title;
-    
+
     @Column(name = "url", nullable = false, unique = true)
     private String url;
-    
+
+    @Column(name = "order_sign", nullable = false)
+    private boolean orderSign;
+
     @Column(name = "enabled", nullable = false)
     private boolean enabled;
-    
+
     @Column(name = "request_count", nullable = false)
     private Integer requestCount;
-    
-    @Column(name = "signed_count", nullable = false)
+
+    @Column(name = "sign_count", nullable = false)
     private Integer signedCount;
 
     @ManyToOne
@@ -54,11 +57,7 @@ public class SignedDocument {
     private User applicant;
 
     @ManyToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
-    @JoinTable(
-        name = "p_sign_user",
-        joinColumns = @JoinColumn(name = "document_id", referencedColumnName = "id"),
-        inverseJoinColumns = @JoinColumn(name = "user_id", referencedColumnName = "id")
-    )
-    private Set<User> signed = new HashSet<>();
+    @JoinTable(name = "p_sign_user", joinColumns = @JoinColumn(name = "document_id", referencedColumnName = "id"), inverseJoinColumns = @JoinColumn(name = "user_id", referencedColumnName = "id"))
+    private Set<User> signers = new HashSet<>();
 
 }

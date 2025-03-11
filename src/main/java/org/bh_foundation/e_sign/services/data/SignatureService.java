@@ -20,14 +20,15 @@ import jakarta.servlet.http.HttpServletRequest;
 
 @Service
 public class SignatureService {
-    
+
     private final SignatureRepository signatureRepository;
     private final UserRepository userRepository;
     private final HttpServletRequest servletRequest;
     private final JwtService jwtService;
     private final PasswordEncoder passwordEncoder;
 
-    public SignatureService(SignatureRepository signatureRepository, UserRepository userRepository, HttpServletRequest servletRequest, JwtService jwtService, PasswordEncoder passwordEncoder) {
+    public SignatureService(SignatureRepository signatureRepository, UserRepository userRepository,
+            HttpServletRequest servletRequest, JwtService jwtService, PasswordEncoder passwordEncoder) {
         this.signatureRepository = signatureRepository;
         this.userRepository = userRepository;
         this.servletRequest = servletRequest;
@@ -37,17 +38,23 @@ public class SignatureService {
 
     public ResponseDto<?> get(String passphrase) {
         Long userId = jwtService.extractUserId(servletRequest.getHeader("Authorization"));
-        User user = userRepository.findById(userId).orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "forbidden"));
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "forbidden"));
         Signature signature = user.getSignature();
-        if (signature == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "signature not found");
-        if (!passwordEncoder.matches(passphrase, signature.getPassphrase())) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "invalid passphrase");
-        return new ResponseDto<>(200, "ok", "data:"+signature.getType()+";base64,"+Base64.getEncoder().encodeToString(signature.getBytes()));
+        if (signature == null)
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "signature not found");
+        if (!passwordEncoder.matches(passphrase, signature.getPassphrase()))
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "invalid passphrase");
+        return new ResponseDto<>(200, "ok",
+                "data:" + signature.getType() + ";base64," + Base64.getEncoder().encodeToString(signature.getBytes()));
     }
 
     public ResponseDto<Signature> store(String passphrase, MultipartFile image) throws IOException {
         Long userId = jwtService.extractUserId(servletRequest.getHeader("Authorization"));
-        User user = userRepository.findById(userId).orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "forbidden"));
-        if (image == null || image.isEmpty()) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "forbidden");
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "forbidden"));
+        if (image == null || image.isEmpty())
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "forbidden");
         byte[] bytes = image.getBytes();
         Signature signature = new Signature();
         signature.setUser(user);
@@ -61,22 +68,29 @@ public class SignatureService {
 
     public ResponseDto<?> extend(String passphrase) {
         Long userId = jwtService.extractUserId(servletRequest.getHeader("Authorization"));
-        User user = userRepository.findById(userId).orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "forbidden"));
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "forbidden"));
         Signature signature = user.getSignature();
-        if (signature == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "signature not found");
-        if (!passwordEncoder.matches(passphrase, signature.getPassphrase())) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "invalid passphrase");
-        if (LocalDateTime.now().isBefore(signature.getExpire().minusMonths(1))) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "signature hasn't expired yet");
+        if (signature == null)
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "signature not found");
+        if (!passwordEncoder.matches(passphrase, signature.getPassphrase()))
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "invalid passphrase");
+        if (LocalDateTime.now().isBefore(signature.getExpire().minusMonths(1)))
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "signature hasn't expired yet");
         signature.setExpire(LocalDateTime.now().plusYears(1));
         signature = signatureRepository.save(signature);
         return new ResponseDto<>(200, "signature updated successfully", null);
     }
 
-    public ResponseDto<Signature> destroy(String passphrase) {
+    public ResponseDto<Signature> delete(String passphrase) {
         Long userId = jwtService.extractUserId(servletRequest.getHeader("Authorization"));
-        User user = userRepository.findById(userId).orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "forbidden"));
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "forbidden"));
         Signature signature = user.getSignature();
-        if (signature == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "signature not found");
-        if (!passwordEncoder.matches(passphrase, signature.getPassphrase())) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "invalid passphrase");
+        if (signature == null)
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "signature not found");
+        if (!passwordEncoder.matches(passphrase, signature.getPassphrase()))
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "invalid passphrase");
         signatureRepository.delete(signature);
         return new ResponseDto<>(204, "signature deleted", null);
     }

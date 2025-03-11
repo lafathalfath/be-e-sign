@@ -1,0 +1,107 @@
+package org.bh_foundation.e_sign.services.data;
+
+import java.io.IOException;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import org.bh_foundation.e_sign.dto.ResponseDto;
+import org.bh_foundation.e_sign.models.Document;
+import org.bh_foundation.e_sign.models.User;
+import org.bh_foundation.e_sign.repository.DocumentRepository;
+import org.bh_foundation.e_sign.repository.UserRepository;
+import org.bh_foundation.e_sign.services.auth.JwtService;
+import org.bh_foundation.e_sign.services.storage.FileStorageService;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
+
+import jakarta.servlet.http.HttpServletRequest;
+
+@Service
+public class DocumentService {
+
+    private final DocumentRepository documentRepository;
+    private final UserRepository userRepository;
+    private final JwtService jwtService;
+    private final FileStorageService fileStorageService;
+    private final HttpServletRequest servletRequest;
+
+    public DocumentService(
+            DocumentRepository documentRepository,
+            UserRepository userRepository,
+            JwtService jwtService,
+            FileStorageService fileStorageService,
+            HttpServletRequest servletRequest) {
+        this.documentRepository = documentRepository;
+        this.userRepository = userRepository;
+        this.jwtService = jwtService;
+        this.fileStorageService = fileStorageService;
+        this.servletRequest = servletRequest;
+    }
+
+    public ResponseDto<?> getAll() {
+        Long userId = jwtService.extractUserId(servletRequest.getHeader("Authorization"));
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized"));
+        return new ResponseDto<>(200, "OK", user.getSigned());
+    }
+
+    public ResponseDto<?> getById(Long id) {
+        return new ResponseDto<>(200, "OK", documentRepository.findById(id));
+    }
+
+    public ResponseDto<?> send(String title, boolean orderSign, MultipartFile file, List<Long> signersId)
+            throws IOException {
+        Long userId = jwtService.extractUserId(servletRequest.getHeader("Authorization"));
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized"));
+
+        if (signersId == null || signersId.isEmpty())
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Bad Request");
+        Set<User> signers = new HashSet<>();
+        signers.addAll(userRepository.findAllById(signersId));
+
+        if (file == null || file.isEmpty())
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Bad Request");
+        String url = fileStorageService.store(file, "document");
+
+        Document document = new Document();
+        document.setApplicant(user);
+        document.setTitle(title);
+        document.setUrl(url);
+        document.setOrderSign(orderSign);
+        document.setEnabled(false);
+        document.setRequestCount(signers.toArray().length);
+        document.setSignedCount(0);
+        document.setSigners(signers);
+        document = documentRepository.save(document);
+        return new ResponseDto<>(201, "Created", document);
+    }
+
+    public ResponseDto<?> sign(Long documentId, MultipartFile signedFile) throws IOException {
+        Document document = documentRepository.findById(documentId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "document not found"));
+
+        if (signedFile == null || signedFile.isEmpty())
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "document required");
+        String url = fileStorageService.store(signedFile, "document");
+        document.setUrl(url);
+        document.setSignedCount(document.getSignedCount() + 1);
+        document = documentRepository.save(document);
+
+        return new ResponseDto<>(200, "Document signed successfullt", document);
+    }
+
+    public ResponseDto<?> delete(Long id) throws IOException {
+        Document document = documentRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Document Not Found"));
+        if (document.getSignedCount() > 0)
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Document In Signed");
+        fileStorageService.deleteByUrl(document.getUrl());
+        documentRepository.delete(document);
+        return new ResponseDto<>(204, "Document Deleted", null);
+    }
+
+}
