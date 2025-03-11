@@ -26,17 +26,16 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
-    
+
     @Value("${client.url}")
     private String CLIENT_URL;
-    
+
     private final UserDetailsImplement userDetailsImplement;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
     public SecurityConfig(
-        UserDetailsImplement userDetailsImplement,
-        JwtAuthenticationFilter jwtAuthenticationFilter
-    ) {
+            UserDetailsImplement userDetailsImplement,
+            JwtAuthenticationFilter jwtAuthenticationFilter) {
         this.userDetailsImplement = userDetailsImplement;
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
     }
@@ -56,20 +55,23 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.exceptionHandling(exce -> exce.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
-            .csrf(AbstractHttpConfigurer::disable)
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-            .authorizeHttpRequests(req -> req
-                .requestMatchers(
-                    "/api/request-sign/**"
-                )
-                .authenticated()
-                .anyRequest()
-                .permitAll()
-            )
-            .userDetailsService(userDetailsImplement)
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
-            return http.build();
+                .csrf(AbstractHttpConfigurer::disable)
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .authorizeHttpRequests(req -> req
+                        .requestMatchers(
+                                "/api/signature/**",
+                                "/api/document/**",
+                                "/api/profile/**")
+                        .authenticated()
+                        .requestMatchers(
+                                "/api/auth/**")
+                        .permitAll()
+                        .anyRequest()
+                        .denyAll())
+                .userDetailsService(userDetailsImplement)
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+        return http.build();
     }
 
     @Bean
