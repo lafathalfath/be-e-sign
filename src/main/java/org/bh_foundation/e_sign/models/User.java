@@ -61,7 +61,7 @@ public class User implements UserDetails {
 
     @OneToMany(mappedBy = "applicant", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
-    private List<Document> signedDocuments;
+    private List<Document> documents;
 
     @JsonIgnore
     @ManyToMany(mappedBy = "signers", fetch = FetchType.LAZY)

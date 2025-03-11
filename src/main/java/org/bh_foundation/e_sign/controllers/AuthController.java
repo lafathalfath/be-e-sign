@@ -4,7 +4,6 @@ import org.bh_foundation.e_sign.dto.AuthenticationResponseDto;
 import org.bh_foundation.e_sign.models.User;
 import org.bh_foundation.e_sign.services.auth.AuthService;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -18,11 +17,6 @@ public class AuthController {
 
     public AuthController(AuthService authService) {
         this.authService = authService;
-    }
-
-    @GetMapping
-    public ResponseEntity<?> getUsers() {
-        return ResponseEntity.ok(authService.getUsers());
     }
 
     @PostMapping("/login")

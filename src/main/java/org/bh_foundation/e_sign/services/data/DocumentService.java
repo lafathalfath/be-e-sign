@@ -41,15 +41,42 @@ public class DocumentService {
         this.servletRequest = servletRequest;
     }
 
-    public ResponseDto<?> getAll() {
+    public ResponseDto<?> getRequested() {
+        Long userId = jwtService.extractUserId(servletRequest.getHeader("Authorization"));
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED,
+                        "Unauthorized"));
+        List<Document> documents = documentRepository.findAllBySigners(user);
+        return new ResponseDto<>(200, "OK", documents);
+    }
+
+    public ResponseDto<?> getRequestedById(Long id) {
+        Long userId = jwtService.extractUserId(servletRequest.getHeader("Authorization"));
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN));
+        Document document = documentRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        if (!document.getSigners().contains(user))
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+        return new ResponseDto<>(200, "OK", document);
+    }
+
+    public ResponseDto<?> getMine() {
         Long userId = jwtService.extractUserId(servletRequest.getHeader("Authorization"));
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized"));
-        return new ResponseDto<>(200, "OK", user.getSigned());
+        return new ResponseDto<>(200, "OK", user.getDocuments());
     }
 
-    public ResponseDto<?> getById(Long id) {
-        return new ResponseDto<>(200, "OK", documentRepository.findById(id));
+    public ResponseDto<?> getMineById(Long id) {
+        Long userId = jwtService.extractUserId(servletRequest.getHeader("Authorization"));
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN));
+        Document document = documentRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        if (!document.getApplicant().equals(user))
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+        return new ResponseDto<>(200, "OK", document);
     }
 
     public ResponseDto<?> send(String title, boolean orderSign, MultipartFile file, List<Long> signersId)
@@ -71,7 +98,7 @@ public class DocumentService {
         document.setApplicant(user);
         document.setTitle(title);
         document.setUrl(url);
-        document.setOrderSign(orderSign);
+        document.setOrderSign(orderSign || false);
         document.setEnabled(false);
         document.setRequestCount(signers.toArray().length);
         document.setSignedCount(0);
@@ -81,11 +108,21 @@ public class DocumentService {
     }
 
     public ResponseDto<?> sign(Long documentId, MultipartFile signedFile) throws IOException {
+        Long userId = jwtService.extractUserId(servletRequest.getHeader("Authorization"));
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "forbidden"));
+
         Document document = documentRepository.findById(documentId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "document not found"));
 
         if (signedFile == null || signedFile.isEmpty())
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "document required");
+
+        if (document.getSigners().contains(user))
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+        if (!document.getSigners().toArray()[document.getSignedCount()].equals(user))
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+
         String url = fileStorageService.store(signedFile, "document");
         document.setUrl(url);
         document.setSignedCount(document.getSignedCount() + 1);

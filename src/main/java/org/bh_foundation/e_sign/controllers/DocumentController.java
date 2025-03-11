@@ -26,15 +26,25 @@ public class DocumentController {
         this.documentService = documentService;
     }
 
+    @GetMapping("/sign")
+    public ResponseEntity<ResponseDto<?>> getRequested() {
+        return ResponseEntity.ok(documentService.getRequested());
+    }
+
     @GetMapping
-    public ResponseEntity<ResponseDto<?>> getAll() {
-        return ResponseEntity.ok(documentService.getAll());
+    public ResponseEntity<ResponseDto<?>> getMine() {
+        return ResponseEntity.ok(documentService.getMine());
+    }
+
+    @GetMapping("/sign/{id}")
+    public ResponseEntity<ResponseDto<?>> getRequestedById(@PathVariable Long id) {
+        return ResponseEntity.ok(documentService.getRequestedById(id));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ResponseDto<?>> getById(
+    public ResponseEntity<ResponseDto<?>> getMineById(
             @PathVariable Long id) {
-        return ResponseEntity.ok(documentService.getById(id));
+        return ResponseEntity.ok(documentService.getMineById(id));
     }
 
     @PostMapping("/send")

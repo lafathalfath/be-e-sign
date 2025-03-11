@@ -1,9 +1,6 @@
 package org.bh_foundation.e_sign.services.auth;
 
-import java.util.List;
-
 import org.bh_foundation.e_sign.dto.AuthenticationResponseDto;
-import org.bh_foundation.e_sign.dto.ResponseDto;
 import org.bh_foundation.e_sign.models.Role;
 import org.bh_foundation.e_sign.models.User;
 import org.bh_foundation.e_sign.repository.UserRepository;
@@ -18,7 +15,7 @@ import jakarta.servlet.http.HttpServletRequest;
 
 @Service
 public class AuthService {
-    
+
     private final UserRepository userRepository;
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
@@ -26,26 +23,16 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
 
     public AuthService(
-        UserRepository userRepository,
-        AuthenticationManager authenticationManager,
-        JwtService jwtService,
-        HttpServletRequest servletRequest,
-        PasswordEncoder passwordEncoder
-    ) {
+            UserRepository userRepository,
+            AuthenticationManager authenticationManager,
+            JwtService jwtService,
+            HttpServletRequest servletRequest,
+            PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.authenticationManager = authenticationManager;
         this.jwtService = jwtService;
         this.servletRequest = servletRequest;
         this.passwordEncoder = passwordEncoder;
-    }
-
-    public ResponseDto<?> getUsers() {
-        List<User> users = userRepository.findAll();
-        return new ResponseDto<List<User>>(
-            200,
-            "OK",
-            users
-        );
     }
 
     public AuthenticationResponseDto register(User request) {
@@ -60,20 +47,23 @@ public class AuthService {
     }
 
     public AuthenticationResponseDto authenticate(User request) {
-        authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword()));
+        authenticationManager
+                .authenticate(new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword()));
         User user = userRepository.findByUsernameOrEmail(request.getUsername())
-            .orElseThrow();
+                .orElseThrow();
         String token = jwtService.generateToken(user);
         return new AuthenticationResponseDto(token);
     }
 
     public AuthenticationResponseDto refreshToken() {
         String header = servletRequest.getHeader("Authorization");
-        if (header == null) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No token provided");
+        if (header == null)
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No token provided");
         String token = header;
-        if (token.startsWith("Bearer ")) token = token.substring(7);
+        if (token.startsWith("Bearer "))
+            token = token.substring(7);
         User user = userRepository.findById(jwtService.extractUserId(token))
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User Not Found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User Not Found"));
         return new AuthenticationResponseDto(jwtService.refreshToken(token, user));
     }
 
