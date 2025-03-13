@@ -14,6 +14,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
+import jakarta.validation.constraints.Min;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -31,6 +32,7 @@ public class Signature {
     private Long id;
 
     @Column(name = "passphrase", nullable = false)
+    @Min(value = 6, message = "Passphrase must be at least 6 characters long")
     private String passphrase;
 
     @Column(name = "bytes", nullable = false, columnDefinition = "LONGBLOB")
