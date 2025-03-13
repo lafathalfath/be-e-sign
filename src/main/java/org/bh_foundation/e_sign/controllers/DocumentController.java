@@ -56,6 +56,11 @@ public class DocumentController {
         return ResponseEntity.status(201).body(documentService.send(title, order_sign, file, signers_id));
     }
 
+    @PutMapping("/{id}/approve")
+    public ResponseEntity<ResponseDto<?>> approve(@PathVariable Long id) {
+        return ResponseEntity.ok(documentService.approve(id));
+    }
+
     @PutMapping("/{id}/sign")
     public ResponseEntity<ResponseDto<?>> sign(
             @PathVariable Long id,

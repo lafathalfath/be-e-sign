@@ -16,6 +16,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -40,10 +41,10 @@ public class Document {
     private String url;
 
     @Column(name = "order_sign", nullable = false)
-    private boolean orderSign;
+    private Boolean orderSign;
 
     @Column(name = "enabled", nullable = false)
-    private boolean enabled;
+    private Boolean enabled;
 
     @Column(name = "request_count", nullable = false)
     private Integer requestCount;
@@ -59,5 +60,9 @@ public class Document {
     @ManyToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     @JoinTable(name = "p_sign_user", joinColumns = @JoinColumn(name = "document_id", referencedColumnName = "id"), inverseJoinColumns = @JoinColumn(name = "user_id", referencedColumnName = "id"))
     private Set<User> signers = new HashSet<>();
+
+    @JsonIgnore
+    @OneToMany(mappedBy = "document", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<DocumentApproval> documentApprovals = new HashSet<>();
 
 }

@@ -29,7 +29,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-// @Data
 @Getter
 @Setter
 @Entity
@@ -62,10 +61,14 @@ public class User implements UserDetails {
     @OneToMany(mappedBy = "applicant", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
     private List<Document> documents;
-
+    
     @JsonIgnore
     @ManyToMany(mappedBy = "signers", fetch = FetchType.LAZY)
     private Set<Document> signed = new HashSet<>();
+
+    @JsonIgnore
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<DocumentApproval> documentApprovals = new HashSet<>();
 
     // AUTHENTICATION
     @Override
