@@ -25,7 +25,7 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -52,7 +52,7 @@ public class User implements UserDetails {
     private String email;
 
     @Column(name = "password", nullable = false)
-    @Min(value = 6, message = "Password must be at least 6 character long")
+    @Size(min = 6, message = "Password must be at least 6 character long")
     private String password;
 
     @Enumerated(value = EnumType.STRING)
