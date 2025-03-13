@@ -98,7 +98,7 @@ public class DocumentService {
 
         if (file == null || file.isEmpty())
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Bad Request");
-        String url = fileStorageService.store(file, "document", 5 * 1024 * 1024, List.of("application/pdf"));
+        String url = fileStorageService.store(file, "document", 50 * 1024 * 1024, List.of("application/pdf"));
 
         Document document = new Document();
         document.setApplicant(user);
@@ -146,7 +146,7 @@ public class DocumentService {
         if (!isApproved)
             throw new ResponseStatusException(HttpStatus.FORBIDDEN);
 
-        String url = fileStorageService.store(signedFile, "document", 5 * 1024 * 1024, List.of("application/pdf"));
+        String url = fileStorageService.store(signedFile, "document", 50 * 1024 * 1024, List.of("application/pdf"));
         document.setUrl(url);
         document.setSignedCount(document.getSignedCount() + 1);
         document = documentRepository.save(document);
