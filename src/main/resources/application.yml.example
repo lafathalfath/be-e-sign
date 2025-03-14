@@ -11,11 +11,13 @@ client:
 spring:
     application:
         name: e-sign
+
     datasource:
         driver-class-name: com.mysql.cj.jdbc.Driver
         url: jdbc:mysql://mysqlHost/e-sign
         username: 
         password: 
+
     jpa:
         hibernate:
             ddl-auto: update
@@ -26,3 +28,15 @@ spring:
                 format-sql: true
         database: mysql
         database-platform: org.hibernate.dialect.MySQL8Dialect
+
+    mail:
+        host: 
+        port: 
+        username: 
+        password: 
+        properties:
+            mail:
+                smtp:
+                    auth: true
+                    starttls:
+                        enable: true

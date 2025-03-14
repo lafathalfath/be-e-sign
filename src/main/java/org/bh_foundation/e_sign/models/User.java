@@ -59,6 +59,10 @@ public class User implements UserDetails {
     @Column(name = "role", nullable = false)
     private Role role;
 
+    @Column(name = "verification_token", nullable = true, columnDefinition = "TEXT")
+    private String verificationToken;
+
+    // RELATIONS
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private Signature signature;
 
