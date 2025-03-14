@@ -27,9 +27,4 @@ public class PasswordResetToken {
     @NotNull
     private String token;
 
-    public PasswordResetToken orElseThrow(Object object) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'orElseThrow'");
-    }
-
 }
