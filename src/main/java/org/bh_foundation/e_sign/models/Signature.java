@@ -14,6 +14,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -33,18 +34,23 @@ public class Signature {
 
     @Column(name = "passphrase", nullable = false)
     @Size(min = 6, message = "Passphrase must be at least 6 characters long")
+    @NotNull
     private String passphrase;
 
     @Column(name = "bytes", nullable = false, columnDefinition = "LONGBLOB")
+    @NotNull
     private byte[] bytes;
 
     @Column(name = "type", nullable = false)
+    @NotNull
     private String type;
 
     @Column(name = "expire", nullable = false)
+    @NotNull
     @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime expire;
 
+    // RELATIONS
     @OneToOne
     @JoinColumn(name = "user_id", nullable = false, referencedColumnName = "id")
     @JsonIgnore

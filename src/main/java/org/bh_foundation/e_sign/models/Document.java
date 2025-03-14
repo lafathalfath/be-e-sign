@@ -3,6 +3,8 @@ package org.bh_foundation.e_sign.models;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.hibernate.validator.constraints.UniqueElements;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import jakarta.persistence.CascadeType;
@@ -18,6 +20,7 @@ import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -35,23 +38,31 @@ public class Document {
     private Long id;
 
     @Column(name = "title", nullable = false)
+    @NotNull
     private String title;
 
     @Column(name = "url", nullable = false, unique = true)
+    @NotNull
+    @UniqueElements
     private String url;
 
     @Column(name = "order_sign", nullable = false)
+    @NotNull
     private Boolean orderSign;
 
     @Column(name = "enabled", nullable = false)
+    @NotNull
     private Boolean enabled;
 
     @Column(name = "request_count", nullable = false)
+    @NotNull
     private Integer requestCount;
 
     @Column(name = "sign_count", nullable = false)
+    @NotNull
     private Integer signedCount;
 
+    // RELATIONS
     @ManyToOne
     @JoinColumn(name = "applicant_id", referencedColumnName = "id", nullable = false)
     @JsonIgnore
