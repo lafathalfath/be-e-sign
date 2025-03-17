@@ -38,6 +38,11 @@ public class AuthController {
         return ResponseEntity.ok(authService.authenticate(request));
     }
 
+    @PostMapping("/refresh-auth")
+    public ResponseEntity<?> refreshAuth() {
+        return ResponseEntity.ok(authService.refreshToken());
+    }
+
     @SuppressWarnings("null")
     @PostMapping("/register")
     public ResponseEntity<?> register(
