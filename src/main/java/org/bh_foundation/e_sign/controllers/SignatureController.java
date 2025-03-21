@@ -24,24 +24,29 @@ public class SignatureController {
     }
 
     @GetMapping("/get")
-    public ResponseEntity<?> get(@RequestParam String passphrase) {
-        return ResponseEntity.ok(signatureService.get(passphrase));
+    public ResponseEntity<?> get() {
+        return ResponseEntity.ok(signatureService.get());
     }
 
-    @PostMapping("/store")
-    public ResponseEntity<?> store(
-            @RequestParam String passphrase,
-            @RequestParam MultipartFile sign) throws IOException {
-        return ResponseEntity.status(201).body(signatureService.store(passphrase, sign));
+    @PostMapping("/store-sign")
+    public ResponseEntity<?> storeSign(
+            @RequestParam(required = true) MultipartFile sign) throws IOException {
+        return ResponseEntity.status(201).body(signatureService.storeSign(sign));
+    }
+
+    @PostMapping("/store-certificate")
+    public ResponseEntity<?> storeCertificate(
+            @RequestParam(required = true) String passphrase) {
+        return ResponseEntity.status(201).body(signatureService.storeCertificate(passphrase));
     }
 
     @PutMapping("/extends")
-    public ResponseEntity<?> extend(@RequestParam String passphrase) {
+    public ResponseEntity<?> extend(@RequestParam(required = true) String passphrase) {
         return ResponseEntity.status(200).body(signatureService.extend(passphrase));
     }
 
     @DeleteMapping("/delete")
-    public ResponseEntity<?> delete(@RequestParam String passphrase) {
+    public ResponseEntity<?> delete(@RequestParam(required = true) String passphrase) {
         return ResponseEntity.ok(signatureService.delete(passphrase));
     }
 

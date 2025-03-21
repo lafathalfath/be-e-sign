@@ -15,7 +15,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Query("SELECT u FROM User u ORDER BY u.id ASC")
     Optional<User> findFirst();
 
-    User findByVerificationToken(String token);
+    @Query("SELECT u FROM User u WHERE u.verificationToken = :token")
+    Optional<User> findByVerificationToken(String token);
 
     Optional<User> findByEmail(String email);
 

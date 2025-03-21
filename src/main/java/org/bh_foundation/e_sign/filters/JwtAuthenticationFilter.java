@@ -48,7 +48,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(username, null, userDetails.getAuthorities());
                 authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authToken);
-            }
+            } 
+            // else {
+            //     response.sendError(HttpServletResponse.SC_FORBIDDEN, "user is not verified");
+            //     return;
+            // }
         }
         filterChain.doFilter(request, response);
     }

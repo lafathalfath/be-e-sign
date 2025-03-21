@@ -51,6 +51,8 @@ public class DocumentService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED,
                         "Unauthorized"));
+        if (user.getVerifiedAt() == null)
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "user unverified");
         List<Document> documents = documentRepository.findAllBySigners(user);
         return new ResponseDto<>(200, "OK", documents);
     }
@@ -59,6 +61,8 @@ public class DocumentService {
         Long userId = jwtService.extractUserId(servletRequest.getHeader("Authorization"));
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN));
+        if (user.getVerifiedAt() == null)
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "user unverified");
         Document document = documentRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
         if (!document.getSigners().contains(user))
@@ -70,6 +74,8 @@ public class DocumentService {
         Long userId = jwtService.extractUserId(servletRequest.getHeader("Authorization"));
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized"));
+        if (user.getVerifiedAt() == null)
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "user unverified");
         List<Document> documents = user.getDocuments();
         return new ResponseDto<>(200, "OK", documents);
     }
@@ -78,6 +84,8 @@ public class DocumentService {
         Long userId = jwtService.extractUserId(servletRequest.getHeader("Authorization"));
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN));
+        if (user.getVerifiedAt() == null)
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "user unverified");
         Document document = documentRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
         if (!document.getApplicant().equals(user))
@@ -90,7 +98,8 @@ public class DocumentService {
         Long userId = jwtService.extractUserId(servletRequest.getHeader("Authorization"));
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized"));
-
+        if (user.getVerifiedAt() == null)
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "user unverified");
         if (signersId == null || signersId.isEmpty())
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Bad Request");
         Set<User> signers = new HashSet<>();
@@ -117,6 +126,8 @@ public class DocumentService {
         Long userId = jwtService.extractUserId(servletRequest.getHeader("Authorization"));
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
+        if (user.getVerifiedAt() == null)
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "user unverified");
         Document document = documentRepository.findById(documentId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "document not found"));
@@ -132,6 +143,8 @@ public class DocumentService {
         Long userId = jwtService.extractUserId(servletRequest.getHeader("Authorization"));
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
+        if (user.getVerifiedAt() == null)
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "user unverified");
         Document document = documentRepository.findById(documentId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "document not found"));
 
@@ -156,6 +169,10 @@ public class DocumentService {
 
     public ResponseDto<?> delete(Long id) throws IOException {
         Long userId = jwtService.extractUserId(servletRequest.getHeader("Authorization"));
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
+        if (user.getVerifiedAt() == null)
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "user unverified");
         Document document = documentRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Document Not Found"));
         if (!document.getApplicant().getId().equals(userId))

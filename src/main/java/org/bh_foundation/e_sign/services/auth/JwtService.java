@@ -21,7 +21,7 @@ public class JwtService {
     @Value("${server.secret-key}")
     private String SECRET_KEY;
 
-    private boolean isTokenExpired(String token) {
+    public boolean isTokenExpired(String token) {
         return extractExpiration(token).before(new Date());
     }
 
@@ -62,8 +62,9 @@ public class JwtService {
             .builder()
             .subject(user.getUsername())
             .claim("id", user.getId())
-            .claim("name", user.getUsername())
+            .claim("username", user.getUsername())
             .claim("email", user.getEmail())
+            .claim("is_verified", user.getVerifiedAt() == null ? false : true)
             .issuedAt(new Date(System.currentTimeMillis()))
             .expiration(new Date(System.currentTimeMillis() + 60 * 60 * 1000))
             .signWith(getSignInKey())

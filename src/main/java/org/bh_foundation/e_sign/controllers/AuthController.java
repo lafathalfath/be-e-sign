@@ -5,6 +5,7 @@ import org.bh_foundation.e_sign.dto.ResponseDto;
 import org.bh_foundation.e_sign.models.User;
 import org.bh_foundation.e_sign.services.auth.AuthService;
 import org.hibernate.validator.constraints.URL;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.view.RedirectView;
 
 import jakarta.mail.MessagingException;
 import jakarta.validation.Valid;
@@ -22,6 +24,9 @@ import jakarta.validation.constraints.Email;
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
+
+    @Value("${client.url}")
+    private String CLIENT_URL;
 
     private final AuthService authService;
 
@@ -43,6 +48,11 @@ public class AuthController {
         return ResponseEntity.ok(authService.refreshToken());
     }
 
+    @PostMapping("/validate-expiration")
+    public ResponseEntity<Boolean> validate() {
+        return ResponseEntity.ok(authService.validateExpirationToken());
+    }
+
     @SuppressWarnings("null")
     @PostMapping("/register")
     public ResponseEntity<?> register(
@@ -55,12 +65,14 @@ public class AuthController {
     }
 
     @GetMapping("/verification/{token}/verify")
-    public ResponseEntity<ResponseDto<?>> verification(@PathVariable String token) {
-        return ResponseEntity.ok(authService.verification(token));
+    public RedirectView verification(@PathVariable String token) {
+        if (authService.verification(token))
+            return new RedirectView(CLIENT_URL + "/dashboard");
+        return new RedirectView(CLIENT_URL);
     }
 
     @GetMapping("/verification/resend")
-    public ResponseEntity<ResponseDto<?>> resendVerification() throws MessagingException, IOException {
+    public ResponseEntity<?> resendVerification() throws MessagingException, IOException {
         return ResponseEntity.ok(authService.resendVerificationEmail());
     }
 
@@ -73,10 +85,14 @@ public class AuthController {
 
     @PostMapping("/reset-password/{token}")
     public ResponseEntity<ResponseDto<?>> resetPassword(
-        @PathVariable String token,
-        @RequestParam String password
-    ) {
+            @PathVariable String token,
+            @RequestParam String password) {
         return ResponseEntity.ok(authService.resetForgottenPassword(token, password));
+    }
+
+    @PostMapping("/logout")
+    public String logout() {
+        return "logout";
     }
 
 }

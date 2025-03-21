@@ -54,23 +54,27 @@ public class AuthService {
         this.passwordEncoder = passwordEncoder;
     }
 
-    public ResponseDto<?> verification(String token) {
-        Long userId = jwtService.extractUserId(servletRequest.getHeader("Authentication"));
-        User user = userRepository.findById(userId).orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
-        if (!token.equals(user.getVerificationToken())) throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+    public boolean verification(String token) {
+        // Long userId =
+        // jwtService.extractUserId(servletRequest.getHeader("Authentication"));
+        User user = userRepository.findByVerificationToken(token).orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
+        if (user == null) return false;
+        // throw new ResponseStatusException(HttpStatus.FORBIDDEN);
         user.setVerifiedAt(LocalDateTime.now());
         user.setVerificationToken(null);
         userRepository.save(user);
-        return new ResponseDto<>(200, "User Verified", null);
+        return true;
+        // return new ResponseDto<>(200, "User Verified", null);
     }
 
     public ResponseDto<?> resendVerificationEmail() throws MessagingException, IOException {
-        Long userId = jwtService.extractUserId(servletRequest.getHeader("Authentication"));
-        User user = userRepository.findById(userId).orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
+        Long userId = jwtService.extractUserId(servletRequest.getHeader("Authorization"));
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
         String token = RandomStringUtils.generate(256);
         user.setVerificationToken(token);
         userRepository.save(user);
-        mailService.sendVerificationEmail(user.getEmail(), BASE_URL + "/api/auth/" + token + "/verify");
+        mailService.sendVerificationEmail(user.getEmail(), BASE_URL + "/api/auth/verification/" + token + "/verify");
         return new ResponseDto<>(200, "Verification email sent", null);
     }
 
@@ -85,8 +89,8 @@ public class AuthService {
         user.setVerificationToken(verificationToken);
         user = userRepository.save(user);
 
-        mailService.sendVerificationEmail(user.getEmail(), BASE_URL + "/api/auth/" + verificationToken + "/verify");
-        
+        mailService.sendVerificationEmail(user.getEmail(), BASE_URL + "/api/auth/verification/" + verificationToken + "/verify");
+
         String token = jwtService.generateToken(user);
         return new AuthenticationResponseDto(token);
     }
@@ -112,7 +116,8 @@ public class AuthService {
         return new AuthenticationResponseDto(jwtService.refreshToken(token, user));
     }
 
-    public ResponseDto<?> sendForgotPasswordEmail(String email, String pageLink) throws MessagingException, IOException {
+    public ResponseDto<?> sendForgotPasswordEmail(String email, String pageLink)
+            throws MessagingException, IOException {
         userRepository.findByEmail(email).orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN));
         String token = RandomStringUtils.generate(16);
         PasswordResetToken passwordResetToken = new PasswordResetToken();
@@ -125,11 +130,22 @@ public class AuthService {
 
     public ResponseDto<?> resetForgottenPassword(String token, String newPassword) {
         PasswordResetToken passwordResetToken = passwordResetTokenRepository.findByToken(token);
-        if (passwordResetToken == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid token");
-        User user = userRepository.findByEmail(passwordResetToken.getEmail()).orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN));
+        if (passwordResetToken == null)
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid token");
+        User user = userRepository.findByEmail(passwordResetToken.getEmail())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN));
         user.setPassword(newPassword);
         userRepository.save(user);
         return new ResponseDto<>(200, "password reset successfully", null);
+    }
+
+    public boolean validateExpirationToken() {
+        String token = servletRequest.getHeader("Authorization");
+        if (token == null)
+            return false;
+        if (token.startsWith("Bearer "))
+            token = token.substring(7);
+        return !jwtService.isTokenExpired(token);
     }
 
 }

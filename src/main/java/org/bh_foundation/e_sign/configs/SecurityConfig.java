@@ -59,15 +59,15 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(req -> req
-                        // .requestMatchers(
-                        // "/api/signature/**",
-                        // "/api/document/**",
-                        // "/api/profile/**")
-                        // .authenticated()
-                        // .requestMatchers(
-                        // "/api/auth/**")
-                        .anyRequest()
+                        .requestMatchers(
+                                "/api/auth/login",
+                                "/api/auth/register",
+                                "/api/auth/verification/{token}/verify",
+                                "/api/auth/forgot-password",
+                                "/api/auth/reset-password/**")
                         .permitAll()
+                        .anyRequest()
+                        .authenticated()
                 // .denyAll()
                 )
                 .userDetailsService(userDetailsImplement)

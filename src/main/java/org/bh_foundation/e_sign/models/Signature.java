@@ -32,9 +32,9 @@ public class Signature {
     @Column(name = "id")
     private Long id;
 
-    @Column(name = "passphrase", nullable = false)
+    @Column(name = "passphrase", nullable = true)
     @Size(min = 6, message = "Passphrase must be at least 6 characters long")
-    @NotNull
+    // @NotNull
     private String passphrase;
 
     @Column(name = "bytes", nullable = false, columnDefinition = "LONGBLOB")

@@ -32,6 +32,7 @@ public class UserService {
         Long userId = jwtService.extractUserId(servletRequest.getHeader("Authorization"));
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized"));
+        if (user.getVerifiedAt() == null) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "user unverified");
         if (username == null && email == null)
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Bad Request");
         if (username != null)
@@ -46,6 +47,7 @@ public class UserService {
         Long userId = jwtService.extractUserId(servletRequest.getHeader("Authorization"));
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "unauthorized"));
+        if (user.getVerifiedAt() == null) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "user unverified");
         if (!passwordEncoder.matches(oldPassword, user.getPassword()))
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "wrong password");
         user.setPassword(passwordEncoder.encode(newPassword));

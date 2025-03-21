@@ -49,12 +49,12 @@ public class User implements UserDetails {
     private Long id;
 
     @Column(name = "username", nullable = false, unique = true)
-    @NotNull(message = "username must not be null")
+    // @NotNull(message = "username must not be null")
     private String username;
 
     @Column(name = "email", nullable = false, unique = true)
     @Email(message = "Invalid email address")
-    @NotNull(message = "email must not be null")
+    // @NotNull(message = "email must not be null")
     private String email;
 
     @Column(name = "password", nullable = false)
