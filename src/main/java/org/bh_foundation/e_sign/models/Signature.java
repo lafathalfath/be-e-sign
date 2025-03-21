@@ -2,6 +2,7 @@ package org.bh_foundation.e_sign.models;
 
 import java.time.LocalDateTime;
 
+import org.hibernate.annotations.ColumnDefault;
 import org.springframework.format.annotation.DateTimeFormat;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -45,10 +46,18 @@ public class Signature {
     @NotNull
     private String type;
 
-    @Column(name = "expire", nullable = false)
-    @NotNull
+    @Column(name = "expire", nullable = true)
     @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime expire;
+
+    @Column(name = "is_enabled", nullable = false)
+    @ColumnDefault("0")
+    private Boolean isEnabled;
+    
+    @Column(name = "created_at", nullable = false, updatable = false)
+    @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    @ColumnDefault("CURRENT_TIMESTAMP")
+    private LocalDateTime createdAt;
 
     // RELATIONS
     @OneToOne

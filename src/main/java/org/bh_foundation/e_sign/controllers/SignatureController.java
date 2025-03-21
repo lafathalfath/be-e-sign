@@ -25,7 +25,12 @@ public class SignatureController {
 
     @GetMapping("/get")
     public ResponseEntity<?> get() {
-        return ResponseEntity.ok(signatureService.get());
+        return ResponseEntity.ok(signatureService.getImage());
+    }
+
+    @GetMapping("/get-certificate")
+    public ResponseEntity<?> getCertificate() {
+        return ResponseEntity.ok(signatureService.getCertificate());
     }
 
     @PostMapping("/store-sign")
@@ -34,10 +39,19 @@ public class SignatureController {
         return ResponseEntity.status(201).body(signatureService.storeSign(sign));
     }
 
+    @PostMapping("/store-sign-base64")
+    public ResponseEntity<?> storeSign(
+            @RequestParam(required = true) byte[]  bytes) {
+        return ResponseEntity.status(201).body(signatureService.storeSignBase64(bytes));
+        // return ResponseEntity.status(201).body(bytes);
+    }
+
     @PostMapping("/store-certificate")
     public ResponseEntity<?> storeCertificate(
-            @RequestParam(required = true) String passphrase) {
-        return ResponseEntity.status(201).body(signatureService.storeCertificate(passphrase));
+            @RequestParam(required = true) String passphrase,
+            @RequestParam(required = true, name = "expire_in") Integer expireIn) {
+        return ResponseEntity.status(201).body(signatureService.storeCertificate(passphrase, expireIn));
+        // return ResponseEntity.status(201).body("passphrase: " + passphrase + "\nexpire in: " + expireIn);
     }
 
     @PutMapping("/extends")

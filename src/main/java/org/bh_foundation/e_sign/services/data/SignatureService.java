@@ -3,6 +3,10 @@ package org.bh_foundation.e_sign.services.data;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.Base64;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 import org.bh_foundation.e_sign.dto.ResponseDto;
 import org.bh_foundation.e_sign.models.Signature;
@@ -36,23 +40,30 @@ public class SignatureService {
         this.passwordEncoder = passwordEncoder;
     }
 
-    public ResponseDto<?> get() {
+    public ResponseDto<?> getImage() {
         Long userId = jwtService.extractUserId(servletRequest.getHeader("Authorization"));
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "forbidden"));
         if (user.getVerifiedAt() == null)
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "user unverified");
-        // if (passphrase == null)
-        //     throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Invalid passphrase");
         Signature signature = user.getSignature();
         if (signature == null)
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "signature not found");
-        // if (signature.getPassphrase().isEmpty())
-        //     throw new ResponseStatusException(HttpStatus.NOT_FOUND);
-        // if (!passwordEncoder.matches(passphrase, signature.getPassphrase()))
-        //     throw new ResponseStatusException(HttpStatus.FORBIDDEN, "invalid passphrase");
         return new ResponseDto<>(200, "ok",
                 "data:" + signature.getType() + ";base64," + Base64.getEncoder().encodeToString(signature.getBytes()));
+    }
+
+    public ResponseDto<?> getCertificate() {
+        Long userId = jwtService.extractUserId(servletRequest.getHeader("Authorization"));
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "forbidden"));
+        if (user.getVerifiedAt() == null)
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "user unverified");
+        Signature signature = user.getSignature();
+        if (signature == null)
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "signature not found");
+        signature.setBytes(null);
+        return new ResponseDto<>(200, "ok", signature); 
     }
 
     public ResponseDto<?> storeSign(MultipartFile image) throws IOException {
@@ -64,16 +75,37 @@ public class SignatureService {
         if (image == null || image.isEmpty())
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "forbidden");
         byte[] bytes = image.getBytes();
-        Signature signature = new Signature();
-        signature.setUser(user);
-        signature.setExpire(LocalDateTime.now().plusYears(1));
+        Signature signature = user.getSignature();
+        if (signature == null) {
+            signature = new Signature();
+            signature.setUser(user);
+        }
         signature.setBytes(bytes);
         signature.setType(image.getContentType());
         signatureRepository.save(signature); //
         return new ResponseDto<>(201, "created", signature);
     }
 
-    public ResponseDto<Signature> storeCertificate(String passphrase) {
+    public ResponseDto<?> storeSignBase64(byte[] bytes) {
+        Long userId = jwtService.extractUserId(servletRequest.getHeader("Authorization"));
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "forbidden"));
+        if (user.getVerifiedAt() == null)
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "user unverified");
+        if (bytes == null)
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "forbidden");
+        Signature signature = user.getSignature();
+        if (signature == null) {
+            signature = new Signature();
+            signature.setUser(user);
+            signature.setType("image/png");
+        }
+        signature.setBytes(bytes);
+        signatureRepository.save(signature);
+        return new ResponseDto<>(201, "created", signature);
+    }
+
+    public ResponseDto<?> storeCertificate(String passphrase, Integer expireIn) {
         Long userId = jwtService.extractUserId(servletRequest.getHeader("Authorization"));
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "forbidden"));
@@ -82,7 +114,12 @@ public class SignatureService {
         if (passphrase == null)
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Invalid passphrase");
         Signature signature = user.getSignature();
+        if (signature.getExpire() != null) throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+        if (signature.getPassphrase() != null) throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+        if (signature.getIsEnabled() == true) throw new ResponseStatusException(HttpStatus.FORBIDDEN);
         signature.setPassphrase(passwordEncoder.encode(passphrase));
+        signature.setExpire(LocalDateTime.now().plusDays(expireIn));
+        signature.setIsEnabled(true);
         signatureRepository.save(signature);
         return new ResponseDto<>(201, "created", signature);
     }
