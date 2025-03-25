@@ -3,10 +3,6 @@ package org.bh_foundation.e_sign.services.data;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.Base64;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
 
 import org.bh_foundation.e_sign.dto.ResponseDto;
 import org.bh_foundation.e_sign.models.Signature;
