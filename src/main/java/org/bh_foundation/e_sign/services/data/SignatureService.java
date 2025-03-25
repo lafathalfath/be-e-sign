@@ -57,9 +57,14 @@ public class SignatureService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "user unverified");
         Signature signature = user.getSignature();
         if (signature == null)
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "signature not found");
-        signature.setBytes(null);
-        return new ResponseDto<>(200, "ok", signature); 
+            signature = null;
+        // throw new ResponseStatusException(HttpStatus.NOT_FOUND, "signature not
+        // found");
+        else if (signature.getCreatedAt() == null || signature.getPassphrase() == null || signature.getExpire() == null)
+            signature = null;
+        else
+            signature.setBytes(null);
+        return new ResponseDto<>(200, "ok", signature);
     }
 
     public ResponseDto<?> storeSign(MultipartFile image) throws IOException {
@@ -75,6 +80,10 @@ public class SignatureService {
         if (signature == null) {
             signature = new Signature();
             signature.setUser(user);
+            signature.setIsEnabled(false);
+            signature.setCreatedAt(null);
+            signature.setPassphrase(null);
+            signature.setExpire(null);
         }
         signature.setBytes(bytes);
         signature.setType(image.getContentType());
@@ -85,16 +94,20 @@ public class SignatureService {
     public ResponseDto<?> storeSignBase64(byte[] bytes) {
         Long userId = jwtService.extractUserId(servletRequest.getHeader("Authorization"));
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "forbidden"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN));
         if (user.getVerifiedAt() == null)
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "user unverified");
         if (bytes == null)
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "forbidden");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN);
         Signature signature = user.getSignature();
         if (signature == null) {
             signature = new Signature();
             signature.setUser(user);
+            signature.setIsEnabled(false);
             signature.setType("image/png");
+            signature.setCreatedAt(null);
+            signature.setPassphrase(null);
+            signature.setExpire(null);
         }
         signature.setBytes(bytes);
         signatureRepository.save(signature);
@@ -110,9 +123,13 @@ public class SignatureService {
         if (passphrase == null)
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Invalid passphrase");
         Signature signature = user.getSignature();
-        if (signature.getExpire() != null) throw new ResponseStatusException(HttpStatus.FORBIDDEN);
-        if (signature.getPassphrase() != null) throw new ResponseStatusException(HttpStatus.FORBIDDEN);
-        if (signature.getIsEnabled() == true) throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+        if (signature.getExpire() != null)
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+        if (signature.getPassphrase() != null)
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+        if (signature.getIsEnabled() == true)
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+        signature.setCreatedAt(LocalDateTime.now());
         signature.setPassphrase(passwordEncoder.encode(passphrase));
         signature.setExpire(LocalDateTime.now().plusDays(expireIn));
         signature.setIsEnabled(true);

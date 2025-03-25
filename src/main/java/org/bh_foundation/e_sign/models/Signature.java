@@ -54,7 +54,7 @@ public class Signature {
     @ColumnDefault("0")
     private Boolean isEnabled;
     
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @Column(name = "created_at", nullable = true, updatable = true)
     @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     @ColumnDefault("CURRENT_TIMESTAMP")
     private LocalDateTime createdAt;
