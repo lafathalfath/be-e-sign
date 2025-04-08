@@ -9,8 +9,6 @@ import java.util.Set;
 import org.hibernate.annotations.ColumnDefault;
 import org.springframework.format.annotation.DateTimeFormat;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -47,7 +45,6 @@ public class Document {
 
     @Column(name = "url", nullable = false)
     @NotNull
-    // @UniqueElements
     private String url;
 
     @Column(name = "order_sign", nullable = false)
@@ -71,34 +68,23 @@ public class Document {
     private Integer signedCount;
 
     @Column(name = "created_at")
-    // @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     @ColumnDefault("CURRENT_TIMESTAMP")
-    // @NotNull
     private LocalDateTime createdAt;
 
     @Column(name = "signed_at", updatable = true, nullable = true)
     @DateTimeFormat(pattern = "yyy-MM-dd HH:mm:ss")
     private LocalDateTime signedAt;
 
-    // prepresist
-    // @PrePersist
-    // protected void onCreate() {
-    // if (this.createdAt == null) this.createdAt = LocalDateTime.now();
-    // }
-
     // RELATIONS
     @ManyToOne
     @JoinColumn(name = "applicant_id", referencedColumnName = "id", nullable = false)
-    // @JsonIgnore
     private User applicant;
 
     @ManyToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     @JoinTable(name = "p_sign_user", joinColumns = @JoinColumn(name = "document_id", referencedColumnName = "id"), inverseJoinColumns = @JoinColumn(name = "user_id", referencedColumnName = "id"))
     private Set<User> signers = new HashSet<>();
 
-    // @JsonIgnore
     @OneToMany(mappedBy = "document", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<DocumentApproval> documentApprovals = new ArrayList<>();
-    // private Set<DocumentApproval> documentApprovals = new HashSet<>();
 
 }

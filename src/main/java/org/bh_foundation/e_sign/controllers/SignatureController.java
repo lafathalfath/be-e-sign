@@ -43,7 +43,6 @@ public class SignatureController {
     public ResponseEntity<?> storeSign(
             @RequestParam(required = true) byte[]  bytes) {
         return ResponseEntity.status(201).body(signatureService.storeSignBase64(bytes));
-        // return ResponseEntity.status(201).body(bytes);
     }
 
     @PostMapping("/store-certificate")
@@ -51,7 +50,6 @@ public class SignatureController {
             @RequestParam(required = true) String passphrase,
             @RequestParam(required = true, name = "expire_in") Integer expireIn) {
         return ResponseEntity.status(201).body(signatureService.storeCertificate(passphrase, expireIn));
-        // return ResponseEntity.status(201).body("passphrase: " + passphrase + "\nexpire in: " + expireIn);
     }
 
     @PutMapping("/extends")

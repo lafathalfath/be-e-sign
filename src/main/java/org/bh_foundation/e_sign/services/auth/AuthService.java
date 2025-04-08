@@ -55,16 +55,12 @@ public class AuthService {
     }
 
     public boolean verification(String token) {
-        // Long userId =
-        // jwtService.extractUserId(servletRequest.getHeader("Authentication"));
         User user = userRepository.findByVerificationToken(token).orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
         if (user == null) return false;
-        // throw new ResponseStatusException(HttpStatus.FORBIDDEN);
         user.setVerifiedAt(LocalDateTime.now());
         user.setVerificationToken(null);
         userRepository.save(user);
         return true;
-        // return new ResponseDto<>(200, "User Verified", null);
     }
 
     public ResponseDto<?> resendVerificationEmail() throws MessagingException, IOException {

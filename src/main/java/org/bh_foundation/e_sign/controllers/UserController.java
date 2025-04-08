@@ -1,6 +1,5 @@
 package org.bh_foundation.e_sign.controllers;
 
-import org.bh_foundation.e_sign.dto.ResponseDto;
 import org.bh_foundation.e_sign.services.data.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;

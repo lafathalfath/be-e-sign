@@ -58,8 +58,6 @@ public class SignatureService {
         Signature signature = user.getSignature();
         if (signature == null)
             signature = null;
-        // throw new ResponseStatusException(HttpStatus.NOT_FOUND, "signature not
-        // found");
         else if (signature.getCreatedAt() == null || signature.getPassphrase() == null || signature.getExpire() == null)
             signature = null;
         else
@@ -166,7 +164,6 @@ public class SignatureService {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "signature not found");
         if (!passwordEncoder.matches(passphrase, signature.getPassphrase()))
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "invalid passphrase");
-        // signatureRepository.delete(signature);
         user.setSignature(null);
         userRepository.save(user);
         return new ResponseDto<>(204, "signature deleted", null);

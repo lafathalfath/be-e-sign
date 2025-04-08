@@ -38,7 +38,6 @@ public class MailService {
         String htmlTemplate = new String(Files.readAllBytes(
                 Paths.get(new ClassPathResource("templates/mail/verification.html").getURI())), StandardCharsets.UTF_8);
         String htmlContent = htmlTemplate.replace("{{VERIFICATION_LINK}}", verificationLink);
-        // htmlContent = htmlContent.replace("{{COMPANY_LOGO}}", "logoImage");
         helper.setText(htmlContent, true);
 
         ClassPathResource logoImage = new ClassPathResource("static/images/company_logo.png");

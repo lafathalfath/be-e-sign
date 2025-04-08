@@ -92,15 +92,6 @@ public class DocumentService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized"));
         if (user.getVerifiedAt() == null)
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "user unverified");
-        // List<HashMap<String, Object>> payload = new ArrayList<>();
-        // List<Document> documents = user.getDocuments();
-        // HashMap<String, Object> item = new HashMap<>();
-        // for (Document doc : documents) {
-        //     List<DocumentApproval> approvals = new ArrayList<>(doc.getDocumentApprovals());
-        //     item.put("document", doc);
-        //     item.put("approvals", approvals);
-        //     payload.add(item);
-        // }
         List<Document> payload = documentRepository.findAll();
         return new ResponseDto<>(200, "OK", payload);
     }
@@ -140,7 +131,7 @@ public class DocumentService {
             docApp.setApproved(false);
             docApp.setDenied(false);
             docApp.setUser(signerItem);
-            docApp.setPageNumber(pageNumbers.get(index)); // dummy
+            docApp.setPageNumber(pageNumbers.get(index));
             approvals.add(docApp);
             index++;
         }
@@ -148,7 +139,6 @@ public class DocumentService {
         if (file == null || file.isEmpty())
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Bad Request");
         String url = fileStorageService.store(file, "document", 50 * 1024 * 1024, List.of("application/pdf"));
-        // String url = "iklzjhbcxk";
 
         Document document = new Document();
         document.setApplicant(user);
@@ -158,7 +148,6 @@ public class DocumentService {
         document.setEnabled(false);
         document.setRequestCount(signers.size());
         document.setSignedCount(0);
-        // document.setSigners(signers);
 
         for (DocumentApproval dap : approvals) {
             dap.setDocument(document);
@@ -168,7 +157,6 @@ public class DocumentService {
         document.setCreatedAt(LocalDateTime.now());
         documentRepository.save(document);
         return new ResponseDto<>(201, "Created", document);
-        // return new ResponseDto<>(201, "Created", pageNumbers);
     }
 
     public ResponseDto<?> approve(Long documentId) {

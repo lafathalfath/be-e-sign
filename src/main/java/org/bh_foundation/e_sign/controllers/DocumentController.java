@@ -34,7 +34,6 @@ public class DocumentController {
     @GetMapping("/get")
     public ResponseEntity<?> getMine() {
         return ResponseEntity.ok(documentService.getMine());
-        // return ResponseEntity.ok("hgjkl");
     }
 
     @GetMapping("/sign/{id}")
@@ -55,7 +54,6 @@ public class DocumentController {
             @RequestParam MultipartFile file,
             @RequestParam List<Long> signers_id,
             @RequestParam List<Integer> page_number) throws IOException {
-        // return ResponseEntity.status(200).body(signers_id);
         return ResponseEntity.status(201).body(documentService.send(title, order_sign, file, signers_id, page_number));
     }
 

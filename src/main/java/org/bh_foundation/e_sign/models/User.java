@@ -49,12 +49,10 @@ public class User implements UserDetails {
     private Long id;
 
     @Column(name = "username", nullable = false, unique = true)
-    // @NotNull(message = "username must not be null")
     private String username;
 
     @Column(name = "email", nullable = false, unique = true)
     @Email(message = "Invalid email address")
-    // @NotNull(message = "email must not be null")
     private String email;
 
     @Column(name = "password", nullable = false)
@@ -65,7 +63,6 @@ public class User implements UserDetails {
     @Enumerated(value = EnumType.STRING)
     @Column(name = "role", nullable = false)
     @ColumnDefault("USER")
-    // @NotNull(message = "role must not be null")
     private Role role;
 
     @Column(name = "verified_at", nullable = true)

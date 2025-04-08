@@ -21,8 +21,6 @@ public class UserDetailsImplement implements UserDetailsService {
         User userEntity = userRepository.findByUsernameOrEmail(username)
             .orElseThrow(() -> new UsernameNotFoundException("User not found"));
         
-        // if (userEntity.getVerifiedAt() == null) throw new RuntimeException("user is not verified");
-
         return userEntity;
     }
 
