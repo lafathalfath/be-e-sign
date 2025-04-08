@@ -42,4 +42,12 @@ public class DocumentApproval {
     @ColumnDefault("0")
     private Boolean approved;
 
+    @Column(name = "denied", nullable = false)
+    @ColumnDefault("0")
+    private Boolean denied;
+
+    @Column(name = "page_number", nullable = false)
+    @ColumnDefault("1")
+    private Integer pageNumber;
+
 }

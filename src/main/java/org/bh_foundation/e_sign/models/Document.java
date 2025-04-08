@@ -1,9 +1,13 @@
 package org.bh_foundation.e_sign.models;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
-import org.hibernate.validator.constraints.UniqueElements;
+import org.hibernate.annotations.ColumnDefault;
+import org.springframework.format.annotation.DateTimeFormat;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
@@ -41,39 +45,60 @@ public class Document {
     @NotNull
     private String title;
 
-    @Column(name = "url", nullable = false, unique = true)
+    @Column(name = "url", nullable = false)
     @NotNull
-    @UniqueElements
+    // @UniqueElements
     private String url;
 
     @Column(name = "order_sign", nullable = false)
     @NotNull
+    @ColumnDefault("0")
     private Boolean orderSign;
 
     @Column(name = "enabled", nullable = false)
     @NotNull
+    @ColumnDefault("0")
     private Boolean enabled;
 
     @Column(name = "request_count", nullable = false)
     @NotNull
+    @ColumnDefault("1")
     private Integer requestCount;
 
     @Column(name = "sign_count", nullable = false)
     @NotNull
+    @ColumnDefault("0")
     private Integer signedCount;
+
+    @Column(name = "created_at")
+    // @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    @ColumnDefault("CURRENT_TIMESTAMP")
+    // @NotNull
+    private LocalDateTime createdAt;
+
+    @Column(name = "signed_at", updatable = true, nullable = true)
+    @DateTimeFormat(pattern = "yyy-MM-dd HH:mm:ss")
+    private LocalDateTime signedAt;
+
+    // prepresist
+    // @PrePersist
+    // protected void onCreate() {
+    // if (this.createdAt == null) this.createdAt = LocalDateTime.now();
+    // }
 
     // RELATIONS
     @ManyToOne
     @JoinColumn(name = "applicant_id", referencedColumnName = "id", nullable = false)
-    @JsonIgnore
+    // @JsonIgnore
     private User applicant;
 
     @ManyToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     @JoinTable(name = "p_sign_user", joinColumns = @JoinColumn(name = "document_id", referencedColumnName = "id"), inverseJoinColumns = @JoinColumn(name = "user_id", referencedColumnName = "id"))
     private Set<User> signers = new HashSet<>();
 
-    @JsonIgnore
+    // @JsonIgnore
     @OneToMany(mappedBy = "document", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Set<DocumentApproval> documentApprovals = new HashSet<>();
+    private List<DocumentApproval> documentApprovals = new ArrayList<>();
+    // private Set<DocumentApproval> documentApprovals = new HashSet<>();
 
 }

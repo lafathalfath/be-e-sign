@@ -1,2 +1,8 @@
 application.yml
 application.yaml
+application.yml.dev
+application.yaml.dev
+application.yml.stage
+application.yaml.stage
+application.yml.production
+application.yaml.production

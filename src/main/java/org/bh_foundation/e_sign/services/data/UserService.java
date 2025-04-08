@@ -1,6 +1,9 @@
 package org.bh_foundation.e_sign.services.data;
 
+import java.util.List;
+
 import org.bh_foundation.e_sign.dto.ResponseDto;
+import org.bh_foundation.e_sign.dto.UserDto;
 import org.bh_foundation.e_sign.models.User;
 import org.bh_foundation.e_sign.repository.UserRepository;
 import org.bh_foundation.e_sign.services.auth.JwtService;
@@ -53,6 +56,15 @@ public class UserService {
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
         return new ResponseDto<>(200, "updated", null);
+    }
+    
+    public ResponseDto<?> getAllUsers() {
+        Long userId = jwtService.extractUserId(servletRequest.getHeader("Authorization"));
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "unauthorized"));
+        if (user.getVerifiedAt() == null) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "user unverified");
+        List<UserDto> users = userRepository.findUsernameEmailId();
+        return new ResponseDto<>(200, "OK", users);
     }
 
 }

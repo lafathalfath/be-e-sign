@@ -31,9 +31,10 @@ public class DocumentController {
         return ResponseEntity.ok(documentService.getRequested());
     }
 
-    @GetMapping
-    public ResponseEntity<ResponseDto<?>> getMine() {
+    @GetMapping("/get")
+    public ResponseEntity<?> getMine() {
         return ResponseEntity.ok(documentService.getMine());
+        // return ResponseEntity.ok("hgjkl");
     }
 
     @GetMapping("/sign/{id}")
@@ -48,17 +49,24 @@ public class DocumentController {
     }
 
     @PostMapping("/send")
-    public ResponseEntity<ResponseDto<?>> send(
+    public ResponseEntity<?> send(
             @RequestParam String title,
             @RequestParam boolean order_sign,
             @RequestParam MultipartFile file,
-            @RequestParam List<Long> signers_id) throws IOException {
-        return ResponseEntity.status(201).body(documentService.send(title, order_sign, file, signers_id));
+            @RequestParam List<Long> signers_id,
+            @RequestParam List<Integer> page_number) throws IOException {
+        // return ResponseEntity.status(200).body(signers_id);
+        return ResponseEntity.status(201).body(documentService.send(title, order_sign, file, signers_id, page_number));
     }
 
     @PutMapping("/{id}/approve")
     public ResponseEntity<ResponseDto<?>> approve(@PathVariable Long id) {
         return ResponseEntity.ok(documentService.approve(id));
+    }
+
+    @PutMapping("/{id}/deny")
+    public ResponseEntity<ResponseDto<?>> deny(@PathVariable Long id) {
+        return ResponseEntity.ok(documentService.deny(id));
     }
 
     @PutMapping("/{id}/sign")

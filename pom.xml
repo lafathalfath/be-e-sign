@@ -115,5 +115,7 @@
 				</configuration>
 			</plugin>
 		</plugins>
+
+		<finalName>E_SIGN</finalName>
 	</build>
 </project>

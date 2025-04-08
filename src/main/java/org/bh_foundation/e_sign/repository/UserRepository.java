@@ -1,7 +1,9 @@
 package org.bh_foundation.e_sign.repository;
 
+import java.util.List;
 import java.util.Optional;
 
+import org.bh_foundation.e_sign.dto.UserDto;
 import org.bh_foundation.e_sign.models.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -19,5 +21,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByVerificationToken(String token);
 
     Optional<User> findByEmail(String email);
+
+    @Query("SELECT new org.bh_foundation.e_sign.dto.UserDto(u.id, u.username, u.email) FROM User u")
+    List<UserDto> findUsernameEmailId();
 
 }

@@ -1,6 +1,8 @@
 package org.bh_foundation.e_sign.services.data;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -54,7 +56,21 @@ public class DocumentService {
         if (user.getVerifiedAt() == null)
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "user unverified");
         List<Document> documents = documentRepository.findAllBySigners(user);
-        return new ResponseDto<>(200, "OK", documents);
+        List<Document> dataDocuments = new ArrayList<>();
+        for (Document doc : documents) {
+            for (DocumentApproval dap : doc.getDocumentApprovals()) {
+                if (dap.getUser().getId() == userId) {
+                    List<DocumentApproval> listDap = new ArrayList<>();
+                    listDap.add(dap);
+                    doc.setDocumentApprovals(listDap);
+                }
+            }
+            Set<User> docSign = new HashSet<>();
+            docSign.add(user);
+            doc.setSigners(docSign);
+            dataDocuments.add(doc);
+        }
+        return new ResponseDto<>(200, "OK", dataDocuments);
     }
 
     public ResponseDto<?> getRequestedById(Long id) {
@@ -76,8 +92,17 @@ public class DocumentService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized"));
         if (user.getVerifiedAt() == null)
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "user unverified");
-        List<Document> documents = user.getDocuments();
-        return new ResponseDto<>(200, "OK", documents);
+        // List<HashMap<String, Object>> payload = new ArrayList<>();
+        // List<Document> documents = user.getDocuments();
+        // HashMap<String, Object> item = new HashMap<>();
+        // for (Document doc : documents) {
+        //     List<DocumentApproval> approvals = new ArrayList<>(doc.getDocumentApprovals());
+        //     item.put("document", doc);
+        //     item.put("approvals", approvals);
+        //     payload.add(item);
+        // }
+        List<Document> payload = documentRepository.findAll();
+        return new ResponseDto<>(200, "OK", payload);
     }
 
     public ResponseDto<?> getMineById(Long id) {
@@ -93,7 +118,9 @@ public class DocumentService {
         return new ResponseDto<>(200, "OK", document);
     }
 
-    public ResponseDto<?> send(String title, boolean orderSign, MultipartFile file, List<Long> signersId)
+    public ResponseDto<?> send(String title, boolean orderSign, MultipartFile file, 
+        List<Long> signersId,
+        List<Integer> pageNumbers)
             throws IOException {
         Long userId = jwtService.extractUserId(servletRequest.getHeader("Authorization"));
         User user = userRepository.findById(userId)
@@ -102,12 +129,26 @@ public class DocumentService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "user unverified");
         if (signersId == null || signersId.isEmpty())
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Bad Request");
+        
         Set<User> signers = new HashSet<>();
-        signers.addAll(userRepository.findAllById(signersId));
+        List<User> signersList = userRepository.findAllById(signersId);
+        signers.addAll(signersList);
+        List<DocumentApproval> approvals = new ArrayList<>();
+        Integer index = 0;
+        for (User signerItem : signersList) {
+            DocumentApproval docApp = new DocumentApproval();
+            docApp.setApproved(false);
+            docApp.setDenied(false);
+            docApp.setUser(signerItem);
+            docApp.setPageNumber(pageNumbers.get(index)); // dummy
+            approvals.add(docApp);
+            index++;
+        }
 
         if (file == null || file.isEmpty())
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Bad Request");
         String url = fileStorageService.store(file, "document", 50 * 1024 * 1024, List.of("application/pdf"));
+        // String url = "iklzjhbcxk";
 
         Document document = new Document();
         document.setApplicant(user);
@@ -115,11 +156,19 @@ public class DocumentService {
         document.setUrl(url);
         document.setOrderSign(orderSign || false);
         document.setEnabled(false);
-        document.setRequestCount(signers.toArray().length);
+        document.setRequestCount(signers.size());
         document.setSignedCount(0);
-        document.setSigners(signers);
-        document = documentRepository.save(document);
+        // document.setSigners(signers);
+
+        for (DocumentApproval dap : approvals) {
+            dap.setDocument(document);
+        }
+
+        document.setDocumentApprovals(approvals);
+        document.setCreatedAt(LocalDateTime.now());
+        documentRepository.save(document);
         return new ResponseDto<>(201, "Created", document);
+        // return new ResponseDto<>(201, "Created", pageNumbers);
     }
 
     public ResponseDto<?> approve(Long documentId) {
@@ -135,6 +184,25 @@ public class DocumentService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "invalid order");
         DocumentApproval approval = documentApprovalRepository.findByDocumentIdAndUserId(documentId, userId);
         approval.setApproved(true);
+        approval.setDenied(false);
+        documentApprovalRepository.save(approval);
+        return new ResponseDto<>(200, "document approved", null);
+    }
+    
+    public ResponseDto<?> deny(Long documentId) {
+        Long userId = jwtService.extractUserId(servletRequest.getHeader("Authorization"));
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
+        if (user.getVerifiedAt() == null)
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "user unverified");
+        Document document = documentRepository.findById(documentId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "document not found"));
+        if (document.getOrderSign() && !document.getSigners().toArray()[document.getSignedCount()].equals(user))
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "invalid order");
+        DocumentApproval approval = documentApprovalRepository.findByDocumentIdAndUserId(documentId, userId);
+        approval.setApproved(false);
+        approval.setDenied(true);
         documentApprovalRepository.save(approval);
         return new ResponseDto<>(200, "document approved", null);
     }
