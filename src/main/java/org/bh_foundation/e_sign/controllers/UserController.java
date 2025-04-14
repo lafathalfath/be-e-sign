@@ -16,14 +16,9 @@ public class UserController {
         this.userService = userService;
     }
 
-    @GetMapping("/get")
-    public ResponseEntity<?> get() {
-        return ResponseEntity.ok(userService.getAllUsers());
-    }
-
-    @GetMapping("/ll")
-    public ResponseEntity<?> aa() {
-        return ResponseEntity.ok("GHJKNHJG");
-    }
+    // @GetMapping("/get")
+    // public ResponseEntity<?> get() {
+    //     return ResponseEntity.ok(userService.getAllUsers());
+    // }
 
 }

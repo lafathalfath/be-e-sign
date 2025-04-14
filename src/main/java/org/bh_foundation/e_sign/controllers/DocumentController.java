@@ -37,13 +37,16 @@ public class DocumentController {
     }
 
     @GetMapping("/sign/{id}")
-    public ResponseEntity<ResponseDto<?>> getRequestedById(@PathVariable Long id) {
+    public ResponseEntity<?> getRequestedById(@PathVariable String id) throws Exception {
+        // String decodedId = URLEncoder.encode(id, StandardCharsets.UTF_8.toString());
+        // String decodedId = URLDecoder.decode(id, StandardCharsets.UTF_8.toString());
         return ResponseEntity.ok(documentService.getRequestedById(id));
+        // return ResponseEntity.ok(id);
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<ResponseDto<?>> getMineById(
-            @PathVariable Long id) {
+            @PathVariable String id) throws Exception {
         return ResponseEntity.ok(documentService.getMineById(id));
     }
 
@@ -63,26 +66,25 @@ public class DocumentController {
     }
 
     @PutMapping("/{id}/approve")
-    public ResponseEntity<ResponseDto<?>> approve(@PathVariable Long id) {
+    public ResponseEntity<ResponseDto<?>> approve(@PathVariable String id) throws Exception {
         return ResponseEntity.ok(documentService.approve(id));
     }
 
     @PutMapping("/{id}/deny")
-    public ResponseEntity<ResponseDto<?>> deny(@PathVariable Long id) {
+    public ResponseEntity<ResponseDto<?>> deny(@PathVariable String id) throws Exception {
         return ResponseEntity.ok(documentService.deny(id));
     }
 
     @PutMapping("/{id}/sign")
     public ResponseEntity<?> sign(
-            @PathVariable Long id,
+            @PathVariable String id,
             @RequestParam MultipartFile file,
-            @RequestParam String passphrase) throws IOException {
+            @RequestParam String passphrase) throws IOException, Exception {
         return ResponseEntity.ok(documentService.sign(id, file, passphrase));
     }
 
     @DeleteMapping("/{id}/delete")
-    public ResponseEntity<ResponseDto<?>> delete(@PathVariable Long id)
-            throws IOException {
+    public ResponseEntity<ResponseDto<?>> delete(@PathVariable String id) throws IOException, Exception {
         return ResponseEntity.status(204).body(documentService.delete(id));
     }
 

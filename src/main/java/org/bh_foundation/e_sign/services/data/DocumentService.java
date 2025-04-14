@@ -17,6 +17,7 @@ import org.bh_foundation.e_sign.repository.DocumentRepository;
 import org.bh_foundation.e_sign.repository.UserRepository;
 import org.bh_foundation.e_sign.services.auth.JwtService;
 import org.bh_foundation.e_sign.services.storage.FileStorageService;
+import org.bh_foundation.e_sign.utils.Crypt;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -35,6 +36,7 @@ public class DocumentService {
     private final FileStorageService fileStorageService;
     private final HttpServletRequest servletRequest;
     private final PasswordEncoder passwordEncoder;
+    private final Crypt crypt;
 
     public DocumentService(
             DocumentRepository documentRepository,
@@ -43,7 +45,8 @@ public class DocumentService {
             JwtService jwtService,
             FileStorageService fileStorageService,
             HttpServletRequest servletRequest,
-            PasswordEncoder passwordEncoder) {
+            PasswordEncoder passwordEncoder,
+            Crypt crypt) {
         this.documentRepository = documentRepository;
         this.userRepository = userRepository;
         this.documentApprovalRepository = documentApprovalRepository;
@@ -51,6 +54,7 @@ public class DocumentService {
         this.fileStorageService = fileStorageService;
         this.servletRequest = servletRequest;
         this.passwordEncoder = passwordEncoder;
+        this.crypt = crypt;
     }
 
     public ResponseDto<?> getRequested() {
@@ -78,13 +82,14 @@ public class DocumentService {
         return new ResponseDto<>(200, "OK", dataDocuments);
     }
 
-    public ResponseDto<?> getRequestedById(Long id) {
+    public ResponseDto<?> getRequestedById(String id) throws Exception {
         Long userId = jwtService.extractUserId(servletRequest.getHeader("Authorization"));
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN));
         if (user.getVerifiedAt() == null)
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "user unverified");
-        Document document = documentRepository.findById(id)
+        Long decryptedId = Long.parseLong(crypt.decryptString(id));
+        Document document = documentRepository.findById(decryptedId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
         if (!document.getSigners().contains(user))
             throw new ResponseStatusException(HttpStatus.FORBIDDEN);
@@ -101,13 +106,14 @@ public class DocumentService {
         return new ResponseDto<>(200, "OK", payload);
     }
 
-    public ResponseDto<?> getMineById(Long id) {
+    public ResponseDto<?> getMineById(String id) throws Exception {
         Long userId = jwtService.extractUserId(servletRequest.getHeader("Authorization"));
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN));
         if (user.getVerifiedAt() == null)
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "user unverified");
-        Document document = documentRepository.findById(id)
+        Long decryptedId = Long.parseLong(crypt.decryptString(id));
+        Document document = documentRepository.findById(decryptedId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
         if (!document.getApplicant().equals(user))
             throw new ResponseStatusException(HttpStatus.FORBIDDEN);
@@ -181,49 +187,53 @@ public class DocumentService {
         return new ResponseDto<>(201, "Created", document);
     }
 
-    public ResponseDto<?> approve(Long documentId) {
+    public ResponseDto<?> approve(String documentId) throws Exception {
         Long userId = jwtService.extractUserId(servletRequest.getHeader("Authorization"));
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
         if (user.getVerifiedAt() == null)
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "user unverified");
-        Document document = documentRepository.findById(documentId)
+        Long decryptedId = Long.parseLong(crypt.decryptString(documentId));
+        Document document = documentRepository.findById(decryptedId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "document not found"));
         if (document.getOrderSign() && !document.getSigners().toArray()[document.getSignedCount()].equals(user))
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "invalid order");
-        DocumentApproval approval = documentApprovalRepository.findByDocumentIdAndUserId(documentId, userId);
+        DocumentApproval approval = documentApprovalRepository.findByDocumentIdAndUserId(decryptedId, userId);
         approval.setApproved(true);
         approval.setDenied(false);
         documentApprovalRepository.save(approval);
         return new ResponseDto<>(200, "document approved", null);
     }
 
-    public ResponseDto<?> deny(Long documentId) {
+    public ResponseDto<?> deny(String documentId) throws Exception {
         Long userId = jwtService.extractUserId(servletRequest.getHeader("Authorization"));
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
         if (user.getVerifiedAt() == null)
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "user unverified");
-        Document document = documentRepository.findById(documentId)
+        Long decryptedId = Long.parseLong(crypt.decryptString(documentId));
+        Document document = documentRepository.findById(decryptedId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "document not found"));
         if (document.getOrderSign() && !document.getSigners().toArray()[document.getSignedCount()].equals(user))
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "invalid order");
-        DocumentApproval approval = documentApprovalRepository.findByDocumentIdAndUserId(documentId, userId);
+        DocumentApproval approval = documentApprovalRepository.findByDocumentIdAndUserId(decryptedId, userId);
         approval.setApproved(false);
         approval.setDenied(true);
         documentApprovalRepository.save(approval);
         return new ResponseDto<>(200, "document approved", null);
     }
 
-    public ResponseDto<?> sign(Long documentId, MultipartFile signedFile, String passphrase) throws IOException {
+    public ResponseDto<?> sign(String documentId, MultipartFile signedFile, String passphrase)
+            throws IOException, Exception {
         Long userId = jwtService.extractUserId(servletRequest.getHeader("Authorization"));
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
         if (user.getVerifiedAt() == null)
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "user unverified");
-        Document document = documentRepository.findById(documentId)
+        Long decryptedId = Long.parseLong(crypt.decryptString(documentId));
+        Document document = documentRepository.findById(decryptedId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "document not found"));
 
         if (signedFile == null || signedFile.isEmpty())
@@ -233,7 +243,7 @@ public class DocumentService {
         if (document.getOrderSign() && !document.getSigners().toArray()[document.getSignedCount()].equals(user))
             throw new ResponseStatusException(HttpStatus.FORBIDDEN);
 
-        DocumentApproval approval = documentApprovalRepository.findByDocumentIdAndUserId(documentId, userId);
+        DocumentApproval approval = documentApprovalRepository.findByDocumentIdAndUserId(decryptedId, userId);
         if (approval == null || approval.getApproved().equals(false))
             throw new ResponseStatusException(HttpStatus.FORBIDDEN);
 
@@ -254,13 +264,14 @@ public class DocumentService {
         return new ResponseDto<>(200, "Document signed successfully", document);
     }
 
-    public ResponseDto<?> delete(Long id) throws IOException {
+    public ResponseDto<?> delete(String id) throws IOException, Exception {
         Long userId = jwtService.extractUserId(servletRequest.getHeader("Authorization"));
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
         if (user.getVerifiedAt() == null)
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "user unverified");
-        Document document = documentRepository.findById(id)
+        Long decryptedId = Long.parseLong(crypt.decryptString(id));
+        Document document = documentRepository.findById(decryptedId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Document Not Found"));
         if (!document.getApplicant().getId().equals(userId))
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "unauthorized");
