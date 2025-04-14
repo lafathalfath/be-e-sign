@@ -3,6 +3,7 @@ package org.bh_foundation.e_sign.services.data;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.Base64;
+import java.util.HashMap;
 
 import org.bh_foundation.e_sign.dto.ResponseDto;
 import org.bh_foundation.e_sign.models.Signature;
@@ -45,8 +46,10 @@ public class SignatureService {
         Signature signature = user.getSignature();
         if (signature == null)
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "signature not found");
-        return new ResponseDto<>(200, "ok",
-                "data:" + signature.getType() + ";base64," + Base64.getEncoder().encodeToString(signature.getBytes()));
+        HashMap<String, Object> payload = new HashMap<>();
+        payload.put("signature", "data:" + signature.getType() + ";base64," + Base64.getEncoder().encodeToString(signature.getBytes()));
+        payload.put("isExpired", LocalDateTime.now().isAfter(signature.getExpire()));
+        return new ResponseDto<>(200, "ok", payload);
     }
 
     public ResponseDto<?> getCertificate() {

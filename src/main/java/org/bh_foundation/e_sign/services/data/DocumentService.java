@@ -10,6 +10,7 @@ import java.util.Set;
 import org.bh_foundation.e_sign.dto.ResponseDto;
 import org.bh_foundation.e_sign.models.Document;
 import org.bh_foundation.e_sign.models.DocumentApproval;
+import org.bh_foundation.e_sign.models.Signature;
 import org.bh_foundation.e_sign.models.User;
 import org.bh_foundation.e_sign.repository.DocumentApprovalRepository;
 import org.bh_foundation.e_sign.repository.DocumentRepository;
@@ -17,6 +18,7 @@ import org.bh_foundation.e_sign.repository.UserRepository;
 import org.bh_foundation.e_sign.services.auth.JwtService;
 import org.bh_foundation.e_sign.services.storage.FileStorageService;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
@@ -32,6 +34,7 @@ public class DocumentService {
     private final JwtService jwtService;
     private final FileStorageService fileStorageService;
     private final HttpServletRequest servletRequest;
+    private final PasswordEncoder passwordEncoder;
 
     public DocumentService(
             DocumentRepository documentRepository,
@@ -39,13 +42,15 @@ public class DocumentService {
             DocumentApprovalRepository documentApprovalRepository,
             JwtService jwtService,
             FileStorageService fileStorageService,
-            HttpServletRequest servletRequest) {
+            HttpServletRequest servletRequest,
+            PasswordEncoder passwordEncoder) {
         this.documentRepository = documentRepository;
         this.userRepository = userRepository;
         this.documentApprovalRepository = documentApprovalRepository;
         this.jwtService = jwtService;
         this.fileStorageService = fileStorageService;
         this.servletRequest = servletRequest;
+        this.passwordEncoder = passwordEncoder;
     }
 
     public ResponseDto<?> getRequested() {
@@ -92,7 +97,7 @@ public class DocumentService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized"));
         if (user.getVerifiedAt() == null)
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "user unverified");
-        List<Document> payload = documentRepository.findAll();
+        List<Document> payload = user.getDocuments();
         return new ResponseDto<>(200, "OK", payload);
     }
 
@@ -109,9 +114,19 @@ public class DocumentService {
         return new ResponseDto<>(200, "OK", document);
     }
 
-    public ResponseDto<?> send(String title, boolean orderSign, MultipartFile file, 
-        List<Long> signersId,
-        List<Integer> pageNumbers)
+    public ResponseDto<?> getMineSigned() {
+        Long userId = jwtService.extractUserId(servletRequest.getHeader("Authorization"));
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN));
+        if (user.getVerifiedAt() == null)
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "user unverified");
+        List<Document> documents = documentRepository.findAllSignedByUser(user);
+        return new ResponseDto<>(200, "OK", documents);
+    }
+
+    public ResponseDto<?> send(String title, boolean orderSign, MultipartFile file,
+            List<Long> signersId,
+            List<Integer> pageNumbers)
             throws IOException {
         Long userId = jwtService.extractUserId(servletRequest.getHeader("Authorization"));
         User user = userRepository.findById(userId)
@@ -120,7 +135,7 @@ public class DocumentService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "user unverified");
         if (signersId == null || signersId.isEmpty())
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Bad Request");
-        
+
         Set<User> signers = new HashSet<>();
         List<User> signersList = userRepository.findAllById(signersId);
         signers.addAll(signersList);
@@ -128,6 +143,13 @@ public class DocumentService {
         Integer index = 0;
         for (User signerItem : signersList) {
             DocumentApproval docApp = new DocumentApproval();
+            if (orderSign) {
+                if (index == 1)
+                    docApp.setEnableSign(true);
+                else
+                    docApp.setEnableSign(false);
+            } else
+                docApp.setEnableSign(true);
             docApp.setApproved(false);
             docApp.setDenied(false);
             docApp.setUser(signerItem);
@@ -176,7 +198,7 @@ public class DocumentService {
         documentApprovalRepository.save(approval);
         return new ResponseDto<>(200, "document approved", null);
     }
-    
+
     public ResponseDto<?> deny(Long documentId) {
         Long userId = jwtService.extractUserId(servletRequest.getHeader("Authorization"));
         User user = userRepository.findById(userId)
@@ -195,7 +217,7 @@ public class DocumentService {
         return new ResponseDto<>(200, "document approved", null);
     }
 
-    public ResponseDto<?> sign(Long documentId, MultipartFile signedFile) throws IOException {
+    public ResponseDto<?> sign(Long documentId, MultipartFile signedFile, String passphrase) throws IOException {
         Long userId = jwtService.extractUserId(servletRequest.getHeader("Authorization"));
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
@@ -211,14 +233,23 @@ public class DocumentService {
         if (document.getOrderSign() && !document.getSigners().toArray()[document.getSignedCount()].equals(user))
             throw new ResponseStatusException(HttpStatus.FORBIDDEN);
 
-        boolean isApproved = documentApprovalRepository.findByDocumentIdAndUserId(documentId, userId).getApproved();
-        if (!isApproved)
+        DocumentApproval approval = documentApprovalRepository.findByDocumentIdAndUserId(documentId, userId);
+        if (approval == null || approval.getApproved().equals(false))
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+
+        Signature signature = user.getSignature();
+        boolean isPassphraseValid = passwordEncoder.matches(passphrase, signature.getPassphrase());
+        if (!isPassphraseValid)
             throw new ResponseStatusException(HttpStatus.FORBIDDEN);
 
         String url = fileStorageService.store(signedFile, "document", 50 * 1024 * 1024, List.of("application/pdf"));
         document.setUrl(url);
         document.setSignedCount(document.getSignedCount() + 1);
+        if (document.getSignedCount().equals(document.getRequestCount()))
+            document.setSignedAt(LocalDateTime.now());
         document = documentRepository.save(document);
+        approval.setSignedDocument(url);
+        documentApprovalRepository.save(approval);
 
         return new ResponseDto<>(200, "Document signed successfully", document);
     }

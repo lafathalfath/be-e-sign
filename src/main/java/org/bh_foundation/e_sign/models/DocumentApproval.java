@@ -50,4 +50,11 @@ public class DocumentApproval {
     @ColumnDefault("1")
     private Integer pageNumber;
 
+    @Column(name = "enable_sign", nullable = false)
+    @ColumnDefault("0")
+    private Boolean enableSign;
+
+    @Column(name = "signed_document", nullable = true)
+    private String signedDocument;
+
 }

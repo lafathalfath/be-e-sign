@@ -47,6 +47,11 @@ public class DocumentController {
         return ResponseEntity.ok(documentService.getMineById(id));
     }
 
+    @GetMapping("/signed")
+    public ResponseEntity<ResponseDto<?>> getMineSigned() {
+        return ResponseEntity.ok(documentService.getMineSigned());
+    }
+
     @PostMapping("/send")
     public ResponseEntity<?> send(
             @RequestParam String title,
@@ -68,10 +73,11 @@ public class DocumentController {
     }
 
     @PutMapping("/{id}/sign")
-    public ResponseEntity<ResponseDto<?>> sign(
+    public ResponseEntity<?> sign(
             @PathVariable Long id,
-            @RequestParam MultipartFile file) throws IOException {
-        return ResponseEntity.ok(documentService.sign(id, file));
+            @RequestParam MultipartFile file,
+            @RequestParam String passphrase) throws IOException {
+        return ResponseEntity.ok(documentService.sign(id, file, passphrase));
     }
 
     @DeleteMapping("/{id}/delete")

@@ -61,6 +61,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(req -> req
                         .requestMatchers(
                                 "/api/auth/login",
+                                "/api/storage/**",
                                 "/api/auth/register",
                                 // "/api/users",
                                 "/api/auth/verification/{token}/verify",
