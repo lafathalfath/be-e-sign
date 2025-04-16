@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.CreationTimestamp;
 import org.springframework.format.annotation.DateTimeFormat;
 
 import jakarta.persistence.CascadeType;
@@ -67,8 +68,10 @@ public class Document {
     @ColumnDefault("0")
     private Integer signedCount;
 
-    @Column(name = "created_at")
-    @ColumnDefault("CURRENT_TIMESTAMP")
+    @Column(name = "created_at", nullable = false, updatable = false)
+    @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    // @ColumnDefault("CURRENT_TIMESTAMP")
+    @CreationTimestamp
     private LocalDateTime createdAt;
 
     @Column(name = "signed_at", updatable = true, nullable = true)

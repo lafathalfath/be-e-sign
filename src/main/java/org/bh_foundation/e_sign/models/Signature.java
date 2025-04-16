@@ -3,6 +3,7 @@ package org.bh_foundation.e_sign.models;
 import java.time.LocalDateTime;
 
 import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.CreationTimestamp;
 import org.springframework.format.annotation.DateTimeFormat;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -55,7 +56,8 @@ public class Signature {
     
     @Column(name = "created_at", nullable = true, updatable = true)
     @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    @ColumnDefault("CURRENT_TIMESTAMP")
+    // @ColumnDefault("CURRENT_TIMESTAMP")
+    @CreationTimestamp
     private LocalDateTime createdAt;
 
     // RELATIONS

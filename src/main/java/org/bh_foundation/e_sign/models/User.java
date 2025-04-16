@@ -62,7 +62,7 @@ public class User implements UserDetails {
 
     @Enumerated(value = EnumType.STRING)
     @Column(name = "role", nullable = false)
-    @ColumnDefault("USER")
+    @ColumnDefault("'USER'")
     private Role role;
 
     @Column(name = "verified_at", nullable = true)

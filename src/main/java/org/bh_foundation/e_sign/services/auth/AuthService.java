@@ -36,6 +36,7 @@ public class AuthService {
     private final MailService mailService;
     private final HttpServletRequest servletRequest;
     private final PasswordEncoder passwordEncoder;
+    private final SessionService sessionService;
 
     public AuthService(
             UserRepository userRepository,
@@ -44,7 +45,8 @@ public class AuthService {
             JwtService jwtService,
             HttpServletRequest servletRequest,
             PasswordEncoder passwordEncoder,
-            MailService mailService) {
+            MailService mailService,
+            SessionService sessionService) {
         this.userRepository = userRepository;
         this.passwordResetTokenRepository = passwordResetTokenRepository;
         this.authenticationManager = authenticationManager;
@@ -52,11 +54,14 @@ public class AuthService {
         this.mailService = mailService;
         this.servletRequest = servletRequest;
         this.passwordEncoder = passwordEncoder;
+        this.sessionService = sessionService;
     }
 
     public boolean verification(String token) {
-        User user = userRepository.findByVerificationToken(token).orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
-        if (user == null) return false;
+        User user = userRepository.findByVerificationToken(token)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
+        if (user == null)
+            return false;
         user.setVerifiedAt(LocalDateTime.now());
         user.setVerificationToken(null);
         userRepository.save(user);
@@ -85,18 +90,22 @@ public class AuthService {
         user.setVerificationToken(verificationToken);
         user = userRepository.save(user);
 
-        mailService.sendVerificationEmail(user.getEmail(), BASE_URL + "/api/auth/verification/" + verificationToken + "/verify");
+        mailService.sendVerificationEmail(user.getEmail(),
+                BASE_URL + "/api/auth/verification/" + verificationToken + "/verify");
 
         String token = jwtService.generateToken(user);
         return new AuthenticationResponseDto(token);
     }
 
     public AuthenticationResponseDto authenticate(User request) {
+        if (!sessionService.checkLoginAttempt(servletRequest))
+            return new AuthenticationResponseDto(null);
         authenticationManager
                 .authenticate(new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword()));
         User user = userRepository.findByUsernameOrEmail(request.getUsername())
                 .orElseThrow();
         String token = jwtService.generateToken(user);
+        sessionService.clearLoginAttempt(servletRequest);
         return new AuthenticationResponseDto(token);
     }
 
