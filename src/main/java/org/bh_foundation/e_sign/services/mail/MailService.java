@@ -18,7 +18,10 @@ import jakarta.mail.internet.MimeMessage;
 public class MailService {
 
     @Value("${spring.mail.username}")
-    private String userMail;
+    private String USER_EMAIL;
+
+    @Value("${client.url}")
+    private String CLIENT_URL;
 
     private final JavaMailSender mailSender;
 
@@ -32,7 +35,7 @@ public class MailService {
         MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
         helper.setTo(toEmail);
-        helper.setFrom(userMail);
+        helper.setFrom(USER_EMAIL);
         helper.setSubject("Verify Your Account");
 
         String htmlTemplate = new String(Files.readAllBytes(
@@ -46,14 +49,14 @@ public class MailService {
         mailSender.send(message);
     }
 
-    public void sendResetPasswordEmail(String toEmail, String resetPasswordPageLink, String token) throws MessagingException, IOException {
+    public void sendResetPasswordEmail(String toEmail, String token) throws MessagingException, IOException {
         MimeMessage message = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
         helper.setTo(toEmail);
-        helper.setFrom(userMail);
+        helper.setFrom(USER_EMAIL);
         helper.setSubject("Reset Your Password");
-        String htmlTemplate = new String(Files.readAllBytes(Paths.get(new ClassPathResource("template/mail/resetPassword.html").getURI())), StandardCharsets.UTF_8);
-        String htmlContent = htmlTemplate.replace("{{RESET_PASSWORD_LINK}}", resetPasswordPageLink);
+        String htmlTemplate = new String(Files.readAllBytes(Paths.get(new ClassPathResource("templates/mail/resetPassword.html").getURI())), StandardCharsets.UTF_8); // pada baris ini error muncul
+        String htmlContent = htmlTemplate.replace("{{RESET_PASSWORD_LINK}}", CLIENT_URL + "/reset-password");
         htmlContent = htmlContent.replace("{{TOKEN}}", token);
         helper.setText(htmlContent, true);
         ClassPathResource logoImage = new ClassPathResource("static/images/company_logo.png");

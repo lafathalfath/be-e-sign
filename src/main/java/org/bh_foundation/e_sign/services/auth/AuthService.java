@@ -121,27 +121,38 @@ public class AuthService {
         return new AuthenticationResponseDto(jwtService.refreshToken(token, user));
     }
 
-    public ResponseDto<?> sendForgotPasswordEmail(String email, String pageLink)
+    public ResponseDto<?> sendForgotPasswordEmail(String email)
             throws MessagingException, IOException {
         userRepository.findByEmail(email).orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN));
         String token = RandomStringUtils.generate(16);
-        PasswordResetToken passwordResetToken = new PasswordResetToken();
-        passwordResetToken.setEmail(email);
+        PasswordResetToken passwordResetToken = passwordResetTokenRepository.findByEmail(email);
+        if (passwordResetToken == null) {
+            passwordResetToken = new PasswordResetToken();
+            passwordResetToken.setEmail(email);
+        }
         passwordResetToken.setToken(token);
+        passwordResetToken.setExpiredAt(LocalDateTime.now().plusMinutes(5));
         passwordResetTokenRepository.save(passwordResetToken);
-        mailService.sendResetPasswordEmail(email, pageLink, token);
+        mailService.sendResetPasswordEmail(email, token);
         return new ResponseDto<>(200, "Reset Password Email sent", null);
     }
 
     public ResponseDto<?> resetForgottenPassword(String token, String newPassword) {
         PasswordResetToken passwordResetToken = passwordResetTokenRepository.findByToken(token);
-        if (passwordResetToken == null)
+        if (passwordResetToken == null || LocalDateTime.now().isAfter(passwordResetToken.getExpiredAt()))
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid token");
         User user = userRepository.findByEmail(passwordResetToken.getEmail())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN));
-        user.setPassword(newPassword);
+        .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN));
+        user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
         return new ResponseDto<>(200, "password reset successfully", null);
+    }
+
+    public boolean validateResetPasswordToken(String token) {
+        PasswordResetToken passwordResetToken = passwordResetTokenRepository.findByToken(token);
+        if (passwordResetToken == null)
+            return false;
+        return LocalDateTime.now().isBefore(passwordResetToken.getExpiredAt());
     }
 
     public boolean validateExpirationToken() {

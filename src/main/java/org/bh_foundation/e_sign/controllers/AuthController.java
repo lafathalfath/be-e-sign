@@ -4,7 +4,6 @@ import java.io.IOException;
 import org.bh_foundation.e_sign.dto.ResponseDto;
 import org.bh_foundation.e_sign.models.User;
 import org.bh_foundation.e_sign.services.auth.AuthService;
-import org.hibernate.validator.constraints.URL;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
@@ -76,11 +75,10 @@ public class AuthController {
         return ResponseEntity.ok(authService.resendVerificationEmail());
     }
 
-    @GetMapping("/forgot-password")
+    @PostMapping("/forgot-password")
     public ResponseEntity<ResponseDto<?>> forgotPassword(
-            @Email @RequestParam String email,
-            @URL @RequestParam String page_link) throws MessagingException, IOException {
-        return ResponseEntity.ok(authService.sendForgotPasswordEmail(email, page_link));
+            @Email @RequestParam String email) throws MessagingException, IOException {
+        return ResponseEntity.ok(authService.sendForgotPasswordEmail(email));
     }
 
     @PostMapping("/reset-password/{token}")
@@ -88,6 +86,11 @@ public class AuthController {
             @PathVariable String token,
             @RequestParam String password) {
         return ResponseEntity.ok(authService.resetForgottenPassword(token, password));
+    }
+
+    @PostMapping("/validate-reset-password-token")
+    public ResponseEntity<?> validateResetPasswordToken(@RequestParam String token) {
+        return ResponseEntity.ok(authService.validateResetPasswordToken(token));
     }
 
     @PostMapping("/logout")

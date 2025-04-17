@@ -1,5 +1,9 @@
 package org.bh_foundation.e_sign.models;
 
+import java.time.LocalDateTime;
+
+import org.springframework.format.annotation.DateTimeFormat;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -23,8 +27,12 @@ public class PasswordResetToken {
     @NotNull
     private String email;
 
-    @Column(name = "token", nullable = false)
+    @Column(name = "token", nullable = false, unique = true)
     @NotNull
     private String token;
+
+    @Column(name = "expired_at", nullable = false)
+    @DateTimeFormat(pattern = "yyy-MM-dd HH:mm:ss")
+    private LocalDateTime expiredAt;
 
 }
