@@ -33,6 +33,11 @@ public class AuthController {
         this.authService = authService;
     }
 
+    // @GetMapping("/me")
+    // public ResponseEntity<?> getMe(@AuthenticationPrincipal UserDetailsImplement user) {
+    //     return ResponseEntity.ok(user);
+    // }
+
     @SuppressWarnings("null")
     @PostMapping("/login")
     public ResponseEntity<?> login(@Valid @RequestBody User request, BindingResult result) {

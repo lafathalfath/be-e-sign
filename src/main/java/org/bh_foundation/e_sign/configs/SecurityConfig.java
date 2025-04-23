@@ -62,7 +62,6 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(req -> req
                         .requestMatchers(
-                                // "/api/users/get-ip",
                                 "/api/auth/login",
                                 "/api/storage/**",
                                 "/api/auth/register",

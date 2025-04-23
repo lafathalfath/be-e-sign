@@ -53,13 +53,20 @@ public class SignatureController {
     }
 
     @PutMapping("/extends")
-    public ResponseEntity<?> extend(@RequestParam(required = true) String passphrase) {
-        return ResponseEntity.status(200).body(signatureService.extend(passphrase));
+    public ResponseEntity<?> extend(
+        @RequestParam(required = true) String passphrase,
+        @RequestParam(required = true) Integer extend_in_days) {
+        return ResponseEntity.status(200).body(signatureService.extend(passphrase, extend_in_days));
+    }
+
+    @DeleteMapping("/revoke")
+    public ResponseEntity<?> revoke(@RequestParam(required = true) String passphrase) {
+        return ResponseEntity.ok(signatureService.revoke(passphrase));
     }
 
     @DeleteMapping("/delete")
-    public ResponseEntity<?> delete(@RequestParam(required = true) String passphrase) {
-        return ResponseEntity.ok(signatureService.delete(passphrase));
+    public ResponseEntity<?> delete() {
+        return ResponseEntity.ok(signatureService.delete());
     }
 
 }

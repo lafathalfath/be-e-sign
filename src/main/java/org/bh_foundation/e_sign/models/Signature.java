@@ -1,6 +1,7 @@
 package org.bh_foundation.e_sign.models;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.CreationTimestamp;
@@ -10,11 +11,12 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
+// import jakarta.persistence.GeneratedValue;
+// import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToOne;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -30,9 +32,9 @@ import lombok.NoArgsConstructor;
 public class Signature {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id")
-    private Long id;
+    // @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "serial_number")
+    private String serialNumber;
 
     @Column(name = "passphrase", nullable = true)
     @Size(min = 6, message = "Passphrase must be at least 6 characters long")
@@ -50,6 +52,10 @@ public class Signature {
     @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime expire;
 
+    @Column(name = "extension_date", nullable = true)
+    @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime extensionDate;
+
     @Column(name = "is_enabled", nullable = false)
     @ColumnDefault("0")
     private Boolean isEnabled;
@@ -65,5 +71,11 @@ public class Signature {
     @JoinColumn(name = "user_id", nullable = false, referencedColumnName = "id")
     @JsonIgnore
     private User user;
+
+    // PREPRESISTS
+    @PrePersist
+    public void generateSerialNumber() {
+        if (serialNumber == null) serialNumber = UUID.randomUUID().toString().replace("-", "").toUpperCase();
+    }
 
 }

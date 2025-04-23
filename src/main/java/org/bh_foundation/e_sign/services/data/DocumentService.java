@@ -64,7 +64,7 @@ public class DocumentService {
                         "Unauthorized"));
         if (user.getVerifiedAt() == null)
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "user unverified");
-        List<Document> documents = documentRepository.findAllBySigners(user);
+        List<Document> documents = documentRepository.findAllBySigners(user).reversed();
         List<Document> dataDocuments = new ArrayList<>();
         for (Document doc : documents) {
             for (DocumentApproval dap : doc.getDocumentApprovals()) {
@@ -102,7 +102,7 @@ public class DocumentService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized"));
         if (user.getVerifiedAt() == null)
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "user unverified");
-        List<Document> payload = user.getDocuments();
+        List<Document> payload = user.getDocuments().reversed();
         return new ResponseDto<>(200, "OK", payload);
     }
 
@@ -126,7 +126,7 @@ public class DocumentService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN));
         if (user.getVerifiedAt() == null)
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "user unverified");
-        List<Document> documents = documentRepository.findAllSignedByUser(user);
+        List<Document> documents = documentRepository.findAllSignedByUser(user).reversed();
         return new ResponseDto<>(200, "OK", documents);
     }
 

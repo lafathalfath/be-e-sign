@@ -21,7 +21,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import jakarta.mail.MessagingException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 @Service
 public class AuthService {
@@ -35,6 +37,7 @@ public class AuthService {
     private final JwtService jwtService;
     private final MailService mailService;
     private final HttpServletRequest servletRequest;
+    private final HttpServletResponse servletResponse;
     private final PasswordEncoder passwordEncoder;
     private final SessionService sessionService;
 
@@ -44,6 +47,7 @@ public class AuthService {
             AuthenticationManager authenticationManager,
             JwtService jwtService,
             HttpServletRequest servletRequest,
+            HttpServletResponse servletResponse,
             PasswordEncoder passwordEncoder,
             MailService mailService,
             SessionService sessionService) {
@@ -53,6 +57,7 @@ public class AuthService {
         this.jwtService = jwtService;
         this.mailService = mailService;
         this.servletRequest = servletRequest;
+        this.servletResponse = servletResponse;
         this.passwordEncoder = passwordEncoder;
         this.sessionService = sessionService;
     }
@@ -65,6 +70,13 @@ public class AuthService {
         user.setVerifiedAt(LocalDateTime.now());
         user.setVerificationToken(null);
         userRepository.save(user);
+        String jwtToken = jwtService.generateToken(user);
+        Cookie cookie = new Cookie("accessToken", jwtToken);
+        cookie.setHttpOnly(false);
+        cookie.setPath("/");
+        cookie.setSecure(true);
+        cookie.setMaxAge(1 * 60 * 60);
+        servletResponse.addCookie(cookie);
         return true;
     }
 
@@ -105,6 +117,12 @@ public class AuthService {
         User user = userRepository.findByUsernameOrEmail(request.getUsername())
                 .orElseThrow();
         String token = jwtService.generateToken(user);
+        Cookie cookie = new Cookie("accessToken", token);
+        cookie.setHttpOnly(false);
+        cookie.setPath("/");
+        cookie.setSecure(true);
+        cookie.setMaxAge(1 * 60 * 60);
+        servletResponse.addCookie(cookie);
         sessionService.clearLoginAttempt(servletRequest);
         return new AuthenticationResponseDto(token);
     }

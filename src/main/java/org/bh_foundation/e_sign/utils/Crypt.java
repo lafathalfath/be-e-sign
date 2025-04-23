@@ -1,6 +1,5 @@
 package org.bh_foundation.e_sign.utils;
 
-import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
@@ -26,8 +25,9 @@ public class Crypt {
     }
     
     public String decryptString(String encryptedData) throws Exception {
-        String decodedData = URLDecoder.decode(encryptedData, StandardCharsets.UTF_8);
-        byte[] encryptedBytes = Base64.getDecoder().decode(decodedData);
+        byte[] encryptedBytes = Base64.getDecoder().decode(encryptedData);
+        // String decodedData = URLDecoder.decode(encryptedData, StandardCharsets.UTF_8);
+        // byte[] encryptedBytes = Base64.getDecoder().decode(decodedData);
         SecretKeySpec secretKey = new SecretKeySpec(SECRET_KEY.getBytes(StandardCharsets.UTF_8), "AES");
         Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
         cipher.init(Cipher.DECRYPT_MODE, secretKey);

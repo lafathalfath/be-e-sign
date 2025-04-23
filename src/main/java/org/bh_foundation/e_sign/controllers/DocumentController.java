@@ -8,7 +8,6 @@ import org.bh_foundation.e_sign.services.data.DocumentService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -26,27 +25,27 @@ public class DocumentController {
         this.documentService = documentService;
     }
 
-    @GetMapping("/sign")
+    @GetMapping("/requested-list")
     public ResponseEntity<ResponseDto<?>> getRequested() {
         return ResponseEntity.ok(documentService.getRequested());
     }
 
-    @GetMapping("/get")
+    @GetMapping("/get-list")
     public ResponseEntity<?> getMine() {
         return ResponseEntity.ok(documentService.getMine());
     }
 
-    @GetMapping("/sign/{id}")
-    public ResponseEntity<?> getRequestedById(@PathVariable String id) throws Exception {
+    @GetMapping("/requested")
+    public ResponseEntity<?> getRequestedById(@RequestParam(name = "document") String id) throws Exception {
         // String decodedId = URLEncoder.encode(id, StandardCharsets.UTF_8.toString());
         // String decodedId = URLDecoder.decode(id, StandardCharsets.UTF_8.toString());
         return ResponseEntity.ok(documentService.getRequestedById(id));
         // return ResponseEntity.ok(id);
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/get")
     public ResponseEntity<ResponseDto<?>> getMineById(
-            @PathVariable String id) throws Exception {
+            @RequestParam(name = "document") String id) throws Exception {
         return ResponseEntity.ok(documentService.getMineById(id));
     }
 
@@ -65,26 +64,26 @@ public class DocumentController {
         return ResponseEntity.status(201).body(documentService.send(title, order_sign, file, signers_id, page_number));
     }
 
-    @PutMapping("/{id}/approve")
-    public ResponseEntity<ResponseDto<?>> approve(@PathVariable String id) throws Exception {
+    @PutMapping("/approve")
+    public ResponseEntity<?> approve(@RequestParam(name = "document") String id) throws Exception {
         return ResponseEntity.ok(documentService.approve(id));
     }
 
-    @PutMapping("/{id}/deny")
-    public ResponseEntity<ResponseDto<?>> deny(@PathVariable String id) throws Exception {
+    @PutMapping("/deny")
+    public ResponseEntity<ResponseDto<?>> deny(@RequestParam(name = "document") String id) throws Exception {
         return ResponseEntity.ok(documentService.deny(id));
     }
 
-    @PutMapping("/{id}/sign")
+    @PutMapping("/sign")
     public ResponseEntity<?> sign(
-            @PathVariable String id,
+            @RequestParam(name = "document") String id,
             @RequestParam MultipartFile file,
             @RequestParam String passphrase) throws IOException, Exception {
         return ResponseEntity.ok(documentService.sign(id, file, passphrase));
     }
 
-    @DeleteMapping("/{id}/delete")
-    public ResponseEntity<ResponseDto<?>> delete(@PathVariable String id) throws IOException, Exception {
+    @DeleteMapping("/delete")
+    public ResponseEntity<ResponseDto<?>> delete(@RequestParam(name = "document") String id) throws IOException, Exception {
         return ResponseEntity.status(204).body(documentService.delete(id));
     }
 

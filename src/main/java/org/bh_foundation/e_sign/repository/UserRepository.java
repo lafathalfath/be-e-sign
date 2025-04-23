@@ -22,7 +22,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     Optional<User> findByEmail(String email);
 
-    @Query("SELECT new org.bh_foundation.e_sign.dto.UserDto(u.id, u.username, u.email) FROM User u")
+    @Query("SELECT new org.bh_foundation.e_sign.dto.UserDto(u.id, u.username, u.email) FROM User u ORDER BY u.username ASC")
     List<UserDto> findUsernameEmailId();
 
 }
