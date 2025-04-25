@@ -30,6 +30,8 @@ public class AuthService {
 
     @Value("${server.base-url}")
     private String BASE_URL;
+    @Value("${client.url}")
+    private String CLIENT_URL;
 
     private final UserRepository userRepository;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
@@ -71,10 +73,18 @@ public class AuthService {
         user.setVerificationToken(null);
         userRepository.save(user);
         String jwtToken = jwtService.generateToken(user);
-        Cookie cookie = new Cookie("accessToken", jwtToken);
+        Cookie cookie = new Cookie("bhf-e-sign-access-token", jwtToken);
         cookie.setHttpOnly(false);
         cookie.setPath("/");
-        cookie.setSecure(true);
+
+        if ((!CLIENT_URL.startsWith("http://") && !CLIENT_URL.startsWith("https://"))
+                || (!BASE_URL.startsWith("http://") && !BASE_URL.startsWith("https://")))
+            throw new ResponseStatusException(500, "Internal Server Error", null);
+        if (CLIENT_URL.startsWith("https://") && BASE_URL.startsWith("https://"))
+            cookie.setSecure(true);
+        else
+            cookie.setSecure(false);
+
         cookie.setMaxAge(1 * 60 * 60);
         servletResponse.addCookie(cookie);
         return true;
@@ -117,10 +127,18 @@ public class AuthService {
         User user = userRepository.findByUsernameOrEmail(request.getUsername())
                 .orElseThrow();
         String token = jwtService.generateToken(user);
-        Cookie cookie = new Cookie("accessToken", token);
+        Cookie cookie = new Cookie("bhf-e-sign-access-token", token);
         cookie.setHttpOnly(false);
         cookie.setPath("/");
-        cookie.setSecure(true);
+
+        if ((!CLIENT_URL.startsWith("http://") && !CLIENT_URL.startsWith("https://"))
+                || (!BASE_URL.startsWith("http://") && !BASE_URL.startsWith("https://")))
+            throw new ResponseStatusException(500, "Internal Server Error", null);
+        if (CLIENT_URL.startsWith("https://") && BASE_URL.startsWith("https://"))
+            cookie.setSecure(true);
+        else
+            cookie.setSecure(false);
+
         cookie.setMaxAge(1 * 60 * 60);
         servletResponse.addCookie(cookie);
         sessionService.clearLoginAttempt(servletRequest);
@@ -160,7 +178,7 @@ public class AuthService {
         if (passwordResetToken == null || LocalDateTime.now().isAfter(passwordResetToken.getExpiredAt()))
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid token");
         User user = userRepository.findByEmail(passwordResetToken.getEmail())
-        .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN));
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
         return new ResponseDto<>(200, "password reset successfully", null);

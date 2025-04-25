@@ -33,11 +33,6 @@ public class AuthController {
         this.authService = authService;
     }
 
-    // @GetMapping("/me")
-    // public ResponseEntity<?> getMe(@AuthenticationPrincipal UserDetailsImplement user) {
-    //     return ResponseEntity.ok(user);
-    // }
-
     @SuppressWarnings("null")
     @PostMapping("/login")
     public ResponseEntity<?> login(@Valid @RequestBody User request, BindingResult result) {
@@ -70,7 +65,8 @@ public class AuthController {
 
     @GetMapping("/verification/{token}/verify")
     public RedirectView verification(@PathVariable String token) {
-        if (authService.verification(token))
+        boolean verified = authService.verification(token);
+        if (verified)
             return new RedirectView(CLIENT_URL + "/dashboard");
         return new RedirectView(CLIENT_URL);
     }

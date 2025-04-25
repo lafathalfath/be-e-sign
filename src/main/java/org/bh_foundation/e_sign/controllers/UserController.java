@@ -25,6 +25,11 @@ public class UserController {
         return ResponseEntity.ok(userService.getAllUsers());
     }
 
+    @GetMapping("/get-get")
+    public ResponseEntity<?> getGet() {
+        return ResponseEntity.ok("Test");
+    }
+
     @PutMapping("/change-password")
     public ResponseEntity<?> changePassword(
             @RequestParam String old_password,
