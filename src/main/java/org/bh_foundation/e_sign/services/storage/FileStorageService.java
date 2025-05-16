@@ -1,6 +1,7 @@
 package org.bh_foundation.e_sign.services.storage;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
@@ -38,6 +39,24 @@ public class FileStorageService {
         file.transferTo(new File(filePath));
 
         return fileUrl;
+    }
+
+    public String storeBlob(byte[] blob, String subject, String type) throws Exception {
+        String targetPath = PathComponent.STORAGE_PATH + subject + "/";
+        File targetDir = new File(targetPath);
+        if (!targetDir.exists()) {
+            boolean createDir = targetDir.mkdirs();
+            if (!createDir) return null;
+        }
+        String filename = UUID.randomUUID().toString() + "." + type;
+        String fileUrl = BASE_URL + "/api/storage/" + subject + "/" + filename;
+        fileUrl = fileUrl.replaceAll(" ", "%20");
+        try (FileOutputStream fos = new FileOutputStream(targetPath+"/"+filename)) {
+            fos.write(blob);
+            return fileUrl;
+        } catch (Exception e) {
+            throw e;
+        }
     }
 
     public void deleteByUrl(String fileUrl) throws IOException {

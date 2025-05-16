@@ -1,39 +1,82 @@
 package org.bh_foundation.e_sign.services.data;
 
+import java.awt.Graphics;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.security.KeyStore;
+import java.security.PrivateKey;
+import java.security.Security;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
+import javax.imageio.ImageIO;
+
+import org.apache.tomcat.util.http.fileupload.ByteArrayOutputStream;
 import org.bh_foundation.e_sign.dto.ResponseDto;
+import org.bh_foundation.e_sign.models.Certificate;
+import org.bh_foundation.e_sign.models.DocSize;
 import org.bh_foundation.e_sign.models.Document;
 import org.bh_foundation.e_sign.models.DocumentApproval;
+import org.bh_foundation.e_sign.models.RenderChoice;
 import org.bh_foundation.e_sign.models.Signature;
 import org.bh_foundation.e_sign.models.User;
 import org.bh_foundation.e_sign.repository.DocumentApprovalRepository;
 import org.bh_foundation.e_sign.repository.DocumentRepository;
 import org.bh_foundation.e_sign.repository.UserRepository;
 import org.bh_foundation.e_sign.services.auth.JwtService;
+import org.bh_foundation.e_sign.services.location.LocationService;
 import org.bh_foundation.e_sign.services.storage.FileStorageService;
 import org.bh_foundation.e_sign.utils.Crypt;
+import org.bh_foundation.e_sign.utils.ImageUtility;
+import org.bh_foundation.e_sign.utils.PDFVerifier;
+import org.bh_foundation.e_sign.utils.QRCodeGenerator;
+import org.bh_foundation.e_sign.utils.RandomStringUtils;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.itextpdf.io.image.ImageData;
+import com.itextpdf.io.image.ImageDataFactory;
+import com.itextpdf.kernel.geom.Rectangle;
+import com.itextpdf.kernel.pdf.PdfDocument;
+import com.itextpdf.kernel.pdf.PdfReader;
+import com.itextpdf.kernel.pdf.StampingProperties;
+import com.itextpdf.signatures.BouncyCastleDigest;
+import com.itextpdf.signatures.DigestAlgorithms;
+import com.itextpdf.signatures.IExternalDigest;
+import com.itextpdf.signatures.IExternalSignature;
+import com.itextpdf.signatures.PdfSignatureAppearance;
+import com.itextpdf.signatures.PdfSigner;
+import com.itextpdf.signatures.PrivateKeySignature;
+import com.itextpdf.signatures.PdfSignatureAppearance.RenderingMode;
+
 import jakarta.servlet.http.HttpServletRequest;
 
 @Service
 public class DocumentService {
+
+    @Value("${server.base-url}")
+    private String BASE_URL;
+
+    @Value("${client.url}")
+    private String CLIENT_URL;
 
     private final DocumentRepository documentRepository;
     private final UserRepository userRepository;
     private final DocumentApprovalRepository documentApprovalRepository;
     private final JwtService jwtService;
     private final FileStorageService fileStorageService;
+    private final LocationService locationService;
     private final HttpServletRequest servletRequest;
     private final PasswordEncoder passwordEncoder;
     private final Crypt crypt;
@@ -44,6 +87,7 @@ public class DocumentService {
             DocumentApprovalRepository documentApprovalRepository,
             JwtService jwtService,
             FileStorageService fileStorageService,
+            LocationService locationService,
             HttpServletRequest servletRequest,
             PasswordEncoder passwordEncoder,
             Crypt crypt) {
@@ -52,6 +96,7 @@ public class DocumentService {
         this.documentApprovalRepository = documentApprovalRepository;
         this.jwtService = jwtService;
         this.fileStorageService = fileStorageService;
+        this.locationService = locationService;
         this.servletRequest = servletRequest;
         this.passwordEncoder = passwordEncoder;
         this.crypt = crypt;
@@ -126,7 +171,9 @@ public class DocumentService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN));
         if (user.getVerifiedAt() == null)
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "user unverified");
-        List<Document> documents = documentRepository.findAllSignedByUser(user).reversed();
+        List<Document> documents = documentRepository.findAllSignedByUserSigning(user).reversed();
+        // List<DocumentApproval> dovApp =
+        // documentApprovalRepository.findAllSignedByUserSigning(user).reversed();
         return new ResponseDto<>(200, "OK", documents);
     }
 
@@ -225,7 +272,8 @@ public class DocumentService {
         return new ResponseDto<>(200, "document approved", null);
     }
 
-    public ResponseDto<?> sign(String documentId, MultipartFile signedFile, String passphrase)
+    public ResponseDto<?> sign(String documentId, MultipartFile signedFile, String passphrase,
+            RenderChoice renderChoice, Rectangle rect, DocSize docSize)
             throws IOException, Exception {
         Long userId = jwtService.extractUserId(servletRequest.getHeader("Authorization"));
         User user = userRepository.findById(userId)
@@ -248,19 +296,26 @@ public class DocumentService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN);
 
         Signature signature = user.getSignature();
-        boolean isPassphraseValid = passwordEncoder.matches(passphrase, signature.getPassphrase());
-        if (!isPassphraseValid)
+        List<Certificate> certificates = signature.getCertificates();
+        if (certificates.isEmpty())
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+        Certificate certificate = certificates.getLast();
+        if (!passwordEncoder.matches(passphrase, certificate.getPassphrase()))
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+        if (LocalDateTime.now().isAfter(certificate.getExpire()))
             throw new ResponseStatusException(HttpStatus.FORBIDDEN);
 
-        String url = fileStorageService.store(signedFile, "document", 50 * 1024 * 1024, List.of("application/pdf"));
+        byte[] signedDocument = signMethod(signedFile, approval.getPageNumber(), renderChoice, signature, user, rect,
+                docSize);
+        String url = fileStorageService.storeBlob(signedDocument, "document", "pdf");
         document.setUrl(url);
         document.setSignedCount(document.getSignedCount() + 1);
         if (document.getSignedCount().equals(document.getRequestCount()))
             document.setSignedAt(LocalDateTime.now());
         document = documentRepository.save(document);
         approval.setSignedDocument(url);
+        approval.setSerialNumber(certificate.getSerialNumber());
         documentApprovalRepository.save(approval);
-
         return new ResponseDto<>(200, "Document signed successfully", document);
     }
 
@@ -283,6 +338,166 @@ public class DocumentService {
         fileStorageService.deleteByUrl(document.getUrl());
         documentRepository.delete(document);
         return new ResponseDto<>(204, "Document Deleted", null);
+    }
+
+    public byte[] signSelf(MultipartFile file, Integer page, RenderChoice renderChoice, String passphrase,
+            Rectangle rect,
+            DocSize docSize) throws Exception {
+        Long userId = jwtService.extractUserId(servletRequest.getHeader("Authorization"));
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
+        if (user.getVerifiedAt() == null)
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "user unverified");
+        Signature mySignature = user.getSignature();
+        List<Certificate> certificates = mySignature.getCertificates();
+        if (certificates.isEmpty())
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+        Certificate certificate = certificates.getLast();
+        if (!passwordEncoder.matches(passphrase, certificate.getPassphrase()))
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+        if (LocalDateTime.now().isAfter(certificate.getExpire()))
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+        byte[] blob = signMethod(file, page, renderChoice, mySignature, user, rect, docSize);
+        String url = fileStorageService.storeBlob(blob, "document", "pdf");
+        Document newDoc = new Document();
+        DocumentApproval documentApproval = new DocumentApproval();
+        newDoc.setApplicant(user);
+        newDoc.setCreatedAt(LocalDateTime.now());
+        newDoc.setRequestCount(1);
+        newDoc.setSignedCount(1);
+        newDoc.setSignedAt(LocalDateTime.now());
+        newDoc.setTitle(file.getOriginalFilename());
+        newDoc.setUrl(url);
+        newDoc.setEnabled(true);
+        newDoc.setOrderSign(false);
+        documentApproval.setUser(user);
+        documentApproval.setApproved(true);
+        documentApproval.setDenied(false);
+        documentApproval.setPageNumber(page);
+        documentApproval.setEnableSign(true);
+        documentApproval.setSignedDocument(url);
+        documentApproval.setSerialNumber(certificate.getSerialNumber());
+        documentApproval.setDocument(newDoc);
+        newDoc.setDocumentApprovals(List.of(documentApproval));
+        documentRepository.save(newDoc);
+        return blob;
+    }
+
+    private byte[] signMethod(MultipartFile file, Integer page, RenderChoice renderChoice, Signature mySignature,
+            User user,
+            Rectangle rect,
+            DocSize docSize) throws Exception {
+        Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
+        KeyStore ks = KeyStore.getInstance("PKCS12");
+        ks.load(new FileInputStream("src/main/resources/certificate.p12"), "password".toCharArray());
+        String alias = ks.aliases().nextElement();
+        PrivateKey pk = (PrivateKey) ks.getKey(alias, "password".toCharArray());
+        java.security.cert.Certificate[] chain = ks.getCertificateChain(alias);
+
+        ByteArrayOutputStream signedPdfOutput = new ByteArrayOutputStream();
+
+        PdfReader reader = new PdfReader(file.getInputStream()).setUnethicalReading(true);
+        PdfSigner signer = new PdfSigner(
+                reader,
+                signedPdfOutput,
+                new StampingProperties().useAppendMode());
+        PdfDocument pdfDoc = signer.getDocument();
+
+        Rectangle pageSize = pdfDoc.getPage(page).getPageSize(); // current (to export) document
+
+        float scaleW = pageSize.getWidth() / docSize.getWidth();
+        float scaleH = pageSize.getHeight() / docSize.getHeight();
+
+        Rectangle exportSignRectangle = new Rectangle(
+                scaleW * rect.getX(),
+                pageSize.getHeight() - (scaleH * rect.getHeight()) - (scaleH * rect.getY()),
+                scaleW * rect.getWidth(),
+                (pageSize.getHeight() / docSize.getHeight()) * rect.getHeight());
+        // Certificate certificate = mySignature.getCertificates().getLast();
+        String country = locationService.getCountryByIp();
+        PdfSignatureAppearance appearance = signer.getSignatureAppearance()
+                .setReason("Document has signed")
+                .setLocation(country)
+                .setPageRect(exportSignRectangle)
+                .setPageNumber(page);
+        String filename = Math.abs(LocalDateTime.now().hashCode()) + "-" + RandomStringUtils.generate(32) + ".pdf";
+        String downloadUrl = BASE_URL + "/esign/" + filename;
+        String stamp = "digitally signed @ " + CLIENT_URL;
+        if (CLIENT_URL.startsWith("http://"))
+            stamp = stamp.replace("http://", "");
+        else if (CLIENT_URL.startsWith("https://"))
+            stamp = stamp.replace("https://", "");
+        else
+            stamp = "...";
+
+        if (renderChoice.equals(RenderChoice.IMAGE)) {
+            BufferedImage image = ImageIO.read(new ByteArrayInputStream(mySignature.getBytes()));
+            BufferedImage borderedImage = ImageUtility.addBorderImageSign(image, 10, 10, stamp, user, 24);
+            ByteArrayOutputStream baosImage = new ByteArrayOutputStream();
+            ImageIO.write(borderedImage, "png", baosImage);
+            ImageData imageData = ImageDataFactory.create(baosImage.toByteArray());
+            appearance.setSignatureGraphic(imageData);
+        } else if (renderChoice.equals(RenderChoice.QR)) {
+            byte[] qrcodebyte = QRCodeGenerator.generate(downloadUrl,
+                    Math.min(exportSignRectangle.getWidth(), exportSignRectangle.getHeight()));
+            BufferedImage bufferQr = ImageIO.read(new ByteArrayInputStream(qrcodebyte));
+            BufferedImage textedQr = ImageUtility.addTextQr(bufferQr, user.getUsername(), CLIENT_URL);
+            ByteArrayOutputStream baosQr = new ByteArrayOutputStream();
+            ImageIO.write(textedQr, "png", baosQr);
+            ImageData qrImagedata = ImageDataFactory.create(baosQr.toByteArray());
+            appearance.setSignatureGraphic(qrImagedata);
+        } else if (renderChoice.equals(RenderChoice.BOTH)) {
+            BufferedImage ttdImage = ImageIO.read(new ByteArrayInputStream(mySignature.getBytes()));
+            byte[] qrcodebyte = QRCodeGenerator.generate(downloadUrl,
+                    ttdImage.getHeight() * 130 / 100);
+            BufferedImage qrImage = ImageIO.read(new ByteArrayInputStream(qrcodebyte));
+
+            BufferedImage combined = new BufferedImage(
+                    qrImage.getWidth() + ttdImage.getWidth(),
+                    ttdImage.getHeight(),
+                    BufferedImage.TYPE_INT_ARGB);
+
+            Graphics graphics = combined.getGraphics();
+            graphics.drawImage(qrImage, 0, 0, null);
+            graphics.drawImage(ttdImage, qrImage.getWidth(), 0, null);
+            graphics.dispose();
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            BufferedImage borderedAndTextedQrSign = ImageUtility.addBorderTextQrSign(combined, CLIENT_URL);
+            ImageIO.write(borderedAndTextedQrSign, "png", baos);
+            ImageData combinedImage = ImageDataFactory.create(baos.toByteArray());
+            appearance.setSignatureGraphic(combinedImage);
+        }
+
+        appearance.setRenderingMode(RenderingMode.GRAPHIC);
+        appearance.setLayer2Text("");
+        appearance.setReuseAppearance(false);
+
+        // signer.setFieldName("signature_" + certificate.getSerialNumber() + "_" +
+        // System.currentTimeMillis());
+        signer.setFieldName(UUID.randomUUID().toString());
+
+        IExternalSignature signature = new PrivateKeySignature(pk, DigestAlgorithms.SHA256, "BC");
+        IExternalDigest digest = new BouncyCastleDigest();
+
+        signer.signDetached(digest, signature, chain, null, null, null, 0, PdfSigner.CryptoStandard.CADES);
+        pdfDoc.close();
+
+        byte[] outputByte = signedPdfOutput.toByteArray();
+
+        return outputByte;
+    }
+
+    public ResponseDto<?> verify(MultipartFile file) {
+        Long userId = jwtService.extractUserId(servletRequest.getHeader("Authorization"));
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized"));
+        if (user.getVerifiedAt() == null)
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "user unverified");
+        try (InputStream inputStream = file.getInputStream()) {
+            return new ResponseDto<>(200, "OK", PDFVerifier.verifySignature(inputStream));
+        } catch (Exception e) {
+            throw new RuntimeException("Verifikasi gagal: " + e.getMessage(), e);
+        }
     }
 
 }

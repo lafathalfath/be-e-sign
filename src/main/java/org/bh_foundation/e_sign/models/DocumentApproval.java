@@ -57,4 +57,7 @@ public class DocumentApproval {
     @Column(name = "signed_document", nullable = true)
     private String signedDocument;
 
+    @Column(name = "serial_number", nullable = true)
+    private String serialNumber;
+
 }

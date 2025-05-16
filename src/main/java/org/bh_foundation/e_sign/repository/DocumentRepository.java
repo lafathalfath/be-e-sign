@@ -15,4 +15,6 @@ public interface DocumentRepository extends JpaRepository<Document, Long> {
     @Query("SELECT d FROM Document d WHERE d.applicant = :user AND d.signedCount = d.requestCount")
     List<Document> findAllSignedByUser(User user);
 
+    @Query("SELECT da.document FROM DocumentApproval da WHERE da.user = :user AND da.document.signedCount = da.document.requestCount")
+    List<Document> findAllSignedByUserSigning(User user);
 }

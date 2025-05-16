@@ -1,8 +1,17 @@
 application.yml
 application.yaml
+application.properties
+
 application.yml.dev
 application.yaml.dev
+application.properties.dev
+
 application.yml.stage
 application.yaml.stage
+application.properties.stage
+
 application.yml.production
 application.yaml.production
+application.properties.production
+
+certificate.p12

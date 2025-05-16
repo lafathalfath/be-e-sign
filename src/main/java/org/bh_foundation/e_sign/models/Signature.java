@@ -1,25 +1,25 @@
 package org.bh_foundation.e_sign.models;
 
 import java.time.LocalDateTime;
-import java.util.UUID;
+import java.util.List;
 
-import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.CreationTimestamp;
 import org.springframework.format.annotation.DateTimeFormat;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-// import jakarta.persistence.GeneratedValue;
-// import jakarta.persistence.GenerationType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
-import jakarta.persistence.PrePersist;
+import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -32,13 +32,8 @@ import lombok.NoArgsConstructor;
 public class Signature {
 
     @Id
-    // @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "serial_number")
-    private String serialNumber;
-
-    @Column(name = "passphrase", nullable = true)
-    @Size(min = 6, message = "Passphrase must be at least 6 characters long")
-    private String passphrase;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
     @Column(name = "bytes", nullable = false, columnDefinition = "LONGBLOB")
     @NotNull
@@ -47,35 +42,21 @@ public class Signature {
     @Column(name = "type", nullable = false)
     @NotNull
     private String type;
-
-    @Column(name = "expire", nullable = true)
-    @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    private LocalDateTime expire;
-
-    @Column(name = "extension_date", nullable = true)
-    @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    private LocalDateTime extensionDate;
-
-    @Column(name = "is_enabled", nullable = false)
-    @ColumnDefault("0")
-    private Boolean isEnabled;
     
     @Column(name = "created_at", nullable = true, updatable = true)
     @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    // @ColumnDefault("CURRENT_TIMESTAMP")
     @CreationTimestamp
     private LocalDateTime createdAt;
 
     // RELATIONS
+    @OneToMany(mappedBy = "signature", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    @OrderBy("createdAt ASC")
+    private List<Certificate> certificates;
+
     @OneToOne
     @JoinColumn(name = "user_id", nullable = false, referencedColumnName = "id")
     @JsonIgnore
     private User user;
-
-    // PREPRESISTS
-    @PrePersist
-    public void generateSerialNumber() {
-        if (serialNumber == null) serialNumber = UUID.randomUUID().toString().replace("-", "").toUpperCase();
-    }
 
 }
