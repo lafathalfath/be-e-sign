@@ -1,7 +1,6 @@
 package org.bh_foundation.e_sign.models;
 
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.CreationTimestamp;
@@ -10,8 +9,8 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToOne;
-import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -27,7 +26,7 @@ import lombok.NoArgsConstructor;
 public class Certificate {
 
     @Id
-    @Column(name = "serial_number", unique = true)
+    @Column(name = "serial_number", unique = true, nullable = false)
     private String serialNumber;
     @Column(unique = true, nullable = false)
     private String subject;
@@ -36,9 +35,9 @@ public class Certificate {
     private String passphrase;
     @NotNull
     private LocalDateTime expire;
-    // @Column(name = "extension_date", nullable = true)
-    // @NotNull
-    // private LocalDateTime extensionDate;
+    @Column(nullable = true, columnDefinition = "LONGBLOB")
+    @Lob
+    private byte[] p12;
     @Column(name = "created_at", nullable = false)
     @CreationTimestamp
     private LocalDateTime createdAt;
@@ -50,11 +49,5 @@ public class Certificate {
     @ManyToOne
     @JoinColumn(name = "signature_id", referencedColumnName = "id", nullable = false)
     private Signature signature;
-
-    // PREPRESISTS
-    @PrePersist public void generateSerialNumber() {
-        if (serialNumber == null)
-            serialNumber = UUID.randomUUID().toString().replace("-", "").toUpperCase();
-    }
 
 }

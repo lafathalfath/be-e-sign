@@ -1,6 +1,10 @@
 package org.bh_foundation.e_sign.services.data;
 
+import java.io.ByteArrayInputStream;
+import java.security.KeyStore;
+import java.security.cert.X509Certificate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 
 import org.bh_foundation.e_sign.dto.ResponseDto;
@@ -10,7 +14,8 @@ import org.bh_foundation.e_sign.models.User;
 import org.bh_foundation.e_sign.repository.CertificateRepository;
 import org.bh_foundation.e_sign.repository.UserRepository;
 import org.bh_foundation.e_sign.services.auth.JwtService;
-import org.bh_foundation.e_sign.utils.CertificateReader;
+import org.bh_foundation.e_sign.utils.CertificateGenerator;
+import org.bouncycastle.asn1.x500.X500Name;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -85,53 +90,41 @@ public class CertificateService {
         List<Certificate> certificates = signature.getCertificates();
         if (!certificates.isEmpty() && (certificates.getLast().getExpire().isBefore(LocalDateTime.now())
                 || !certificates.getLast().getIsRevoked())) {
-                    Certificate cert = certificates.getLast();
-                    cert.setIsRevoked(true);
-                    certificateRepository.save(cert);
+            Certificate cert = certificates.getLast();
+            cert.setIsRevoked(true);
+            cert.setP12(null);
+            certificateRepository.save(cert);
         }
-        String certSubject = CertificateReader.getSubject();
-        String subject = "Sub: E="+user.getEmail()+",CN="+user.getUsername()+"\nIss: "+certSubject;
-        Certificate cert = new Certificate();
-        cert.setCreatedAt(LocalDateTime.now());
-        cert.setExpire(LocalDateTime.now().plusDays(expiration));
-        cert.setPassphrase(passwordEncoder.encode(passphrase));
-        cert.setSignature(signature);
-        cert.setIsRevoked(false);
-        cert.setSubject(subject);
-        certificateRepository.save(cert);
+        byte[] p12Blob = CertificateGenerator.generateP12(
+                user.getEmail(),
+                user.getUsername(),
+                "Bogor",
+                "West Java",
+                "Indonesia",
+                passphrase,
+                expiration);
+        KeyStore ks = KeyStore.getInstance("PKCS12");
+        ks.load(new ByteArrayInputStream(p12Blob), passphrase.toCharArray());
+        String alias = ks.aliases().nextElement();
+        X509Certificate cert = (X509Certificate) ks.getCertificate(alias);
+
+        X500Name subjectName = new X500Name(cert.getSubjectX500Principal().getName());
+        X500Name issuerName = new X500Name(cert.getIssuerX500Principal().getName());
+
+        String subject = "Sub: " + subjectName.toString() +
+                "\nIss: " + issuerName.toString();
+        Certificate entity = new Certificate();
+        entity.setSerialNumber(cert.getSerialNumber().toString(16).toUpperCase());
+        entity.setCreatedAt(LocalDateTime.now());
+        entity.setExpire(cert.getNotAfter().toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime());
+        entity.setPassphrase(passwordEncoder.encode(passphrase));
+        entity.setSignature(signature);
+        entity.setIsRevoked(false);
+        entity.setSubject(subject);
+        entity.setP12(p12Blob);
+        certificateRepository.save(entity);
         return new ResponseDto<>(201, "CREATED", "New certificate created successfully");
     }
-
-    // public ResponseDto<?> extend(Integer days, String passphrase) {
-    // Long userId =
-    // jwtService.extractUserId(servletRequest.getHeader("Authorization"));
-    // User user = userRepository.findById(userId)
-    // .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN,
-    // "forbidden"));
-    // if (user.getVerifiedAt() == null)
-    // throw new ResponseStatusException(HttpStatus.FORBIDDEN, "user unverified");
-    // Signature signature = user.getSignature();
-    // if (signature == null || signature.getCertificates().isEmpty())
-    // throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No Signature
-    // Found");
-    // Certificate cert = signature.getCertificates().getLast();
-    // if (cert.getExpire().isAfter(LocalDateTime.now()))
-    // throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Certificate already
-    // expired");
-    // if (cert.getIsRevoked())
-    // throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Certificate already
-    // revoked");
-    // if (cert.getExpire().isBefore(cert.getExpire().minusMonths(1)))
-    // throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-    // "Cannot extend until one month before expiration date");
-    // if (!passwordEncoder.matches(passphrase, cert.getPassphrase()))
-    // throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Invalid
-    // passphrase");
-    // cert.setExpire(LocalDateTime.now().plusDays(days));
-    // cert.setExtensionDate(LocalDateTime.now());
-    // certificateRepository.save(cert);
-    // return new ResponseDto<>(200, "OK", "Certificate extended successfully");
-    // }
 
     public ResponseDto<?> revoke(String serialNumber, String passphrase) {
         Long userId = jwtService.extractUserId(servletRequest.getHeader("Authorization"));
@@ -148,6 +141,7 @@ public class CertificateService {
         if (!passwordEncoder.matches(passphrase, cert.getPassphrase()))
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Invalid passphrase");
         cert.setIsRevoked(true);
+        cert.setP12(null);
         certificateRepository.save(cert);
         return new ResponseDto<>(200, "OK", "Certificate revoked successfully");
     }

@@ -104,6 +104,16 @@
 			<artifactId>bouncy-castle-adapter</artifactId>
 			<version>8.0.0</version> <!-- Sesuaikan dengan versi itext kamu -->
 		</dependency>
+		<dependency>
+			<groupId>org.bouncycastle</groupId>
+			<artifactId>bcprov-jdk15to18</artifactId>
+			<version>1.70</version>
+		</dependency>
+		<dependency>
+			<groupId>org.bouncycastle</groupId>
+			<artifactId>bcpkix-jdk15to18</artifactId>
+			<version>1.70</version>
+		</dependency>
 		<!-- ZXing -->
 		<dependency>
 			<groupId>com.google.zxing</groupId>

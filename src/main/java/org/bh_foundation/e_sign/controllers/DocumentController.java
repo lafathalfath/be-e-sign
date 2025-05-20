@@ -3,9 +3,9 @@ package org.bh_foundation.e_sign.controllers;
 import java.io.IOException;
 import java.util.List;
 
+import org.bh_foundation.e_sign.dto.DocSize;
+import org.bh_foundation.e_sign.dto.RenderChoice;
 import org.bh_foundation.e_sign.dto.ResponseDto;
-import org.bh_foundation.e_sign.models.DocSize;
-import org.bh_foundation.e_sign.models.RenderChoice;
 import org.bh_foundation.e_sign.services.data.DocumentService;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;

@@ -17,5 +17,8 @@ public interface DocumentApprovalRepository extends JpaRepository<DocumentApprov
     List<DocumentApproval> findAllSignedByUserSigning(User user);
 
     void deleteAllByDocument(Document document);
+
+    @Query("SELECT da FROM DocumentApproval da WHERE da.serialNumber = :serial")
+    List<DocumentApproval> findBySerialNumber(String serial);
     
 }

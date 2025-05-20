@@ -3,7 +3,6 @@ package org.bh_foundation.e_sign.services.data;
 import java.awt.Graphics;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.KeyStore;
@@ -19,12 +18,12 @@ import java.util.UUID;
 import javax.imageio.ImageIO;
 
 import org.apache.tomcat.util.http.fileupload.ByteArrayOutputStream;
+import org.bh_foundation.e_sign.dto.DocSize;
+import org.bh_foundation.e_sign.dto.RenderChoice;
 import org.bh_foundation.e_sign.dto.ResponseDto;
 import org.bh_foundation.e_sign.models.Certificate;
-import org.bh_foundation.e_sign.models.DocSize;
 import org.bh_foundation.e_sign.models.Document;
 import org.bh_foundation.e_sign.models.DocumentApproval;
-import org.bh_foundation.e_sign.models.RenderChoice;
 import org.bh_foundation.e_sign.models.Signature;
 import org.bh_foundation.e_sign.models.User;
 import org.bh_foundation.e_sign.repository.DocumentApprovalRepository;
@@ -35,7 +34,6 @@ import org.bh_foundation.e_sign.services.location.LocationService;
 import org.bh_foundation.e_sign.services.storage.FileStorageService;
 import org.bh_foundation.e_sign.utils.Crypt;
 import org.bh_foundation.e_sign.utils.ImageUtility;
-import org.bh_foundation.e_sign.utils.PDFVerifier;
 import org.bh_foundation.e_sign.utils.QRCodeGenerator;
 import org.bh_foundation.e_sign.utils.RandomStringUtils;
 import org.springframework.beans.factory.annotation.Value;
@@ -80,6 +78,7 @@ public class DocumentService {
     private final HttpServletRequest servletRequest;
     private final PasswordEncoder passwordEncoder;
     private final Crypt crypt;
+    private final PDFVerifierService verifierService;
 
     public DocumentService(
             DocumentRepository documentRepository,
@@ -90,7 +89,8 @@ public class DocumentService {
             LocationService locationService,
             HttpServletRequest servletRequest,
             PasswordEncoder passwordEncoder,
-            Crypt crypt) {
+            Crypt crypt,
+            PDFVerifierService verifierService) {
         this.documentRepository = documentRepository;
         this.userRepository = userRepository;
         this.documentApprovalRepository = documentApprovalRepository;
@@ -100,6 +100,7 @@ public class DocumentService {
         this.servletRequest = servletRequest;
         this.passwordEncoder = passwordEncoder;
         this.crypt = crypt;
+        this.verifierService = verifierService;
     }
 
     public ResponseDto<?> getRequested() {
@@ -306,7 +307,7 @@ public class DocumentService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN);
 
         byte[] signedDocument = signMethod(signedFile, approval.getPageNumber(), renderChoice, signature, user, rect,
-                docSize);
+                docSize, certificate.getP12(), passphrase);
         String url = fileStorageService.storeBlob(signedDocument, "document", "pdf");
         document.setUrl(url);
         document.setSignedCount(document.getSignedCount() + 1);
@@ -357,7 +358,7 @@ public class DocumentService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN);
         if (LocalDateTime.now().isAfter(certificate.getExpire()))
             throw new ResponseStatusException(HttpStatus.FORBIDDEN);
-        byte[] blob = signMethod(file, page, renderChoice, mySignature, user, rect, docSize);
+        byte[] blob = signMethod(file, page, renderChoice, mySignature, user, rect, docSize, certificate.getP12(), passphrase);
         String url = fileStorageService.storeBlob(blob, "document", "pdf");
         Document newDoc = new Document();
         DocumentApproval documentApproval = new DocumentApproval();
@@ -386,12 +387,12 @@ public class DocumentService {
     private byte[] signMethod(MultipartFile file, Integer page, RenderChoice renderChoice, Signature mySignature,
             User user,
             Rectangle rect,
-            DocSize docSize) throws Exception {
+            DocSize docSize, byte[] certificate, String passphrase) throws Exception {
         Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
         KeyStore ks = KeyStore.getInstance("PKCS12");
-        ks.load(new FileInputStream("src/main/resources/certificate.p12"), "password".toCharArray());
+        ks.load(new ByteArrayInputStream(certificate), passphrase.toCharArray());
         String alias = ks.aliases().nextElement();
-        PrivateKey pk = (PrivateKey) ks.getKey(alias, "password".toCharArray());
+        PrivateKey pk = (PrivateKey) ks.getKey(alias, passphrase.toCharArray());
         java.security.cert.Certificate[] chain = ks.getCertificateChain(alias);
 
         ByteArrayOutputStream signedPdfOutput = new ByteArrayOutputStream();
@@ -413,7 +414,6 @@ public class DocumentService {
                 pageSize.getHeight() - (scaleH * rect.getHeight()) - (scaleH * rect.getY()),
                 scaleW * rect.getWidth(),
                 (pageSize.getHeight() / docSize.getHeight()) * rect.getHeight());
-        // Certificate certificate = mySignature.getCertificates().getLast();
         String country = locationService.getCountryByIp();
         PdfSignatureAppearance appearance = signer.getSignatureAppearance()
                 .setReason("Document has signed")
@@ -471,9 +471,6 @@ public class DocumentService {
         appearance.setRenderingMode(RenderingMode.GRAPHIC);
         appearance.setLayer2Text("");
         appearance.setReuseAppearance(false);
-
-        // signer.setFieldName("signature_" + certificate.getSerialNumber() + "_" +
-        // System.currentTimeMillis());
         signer.setFieldName(UUID.randomUUID().toString());
 
         IExternalSignature signature = new PrivateKeySignature(pk, DigestAlgorithms.SHA256, "BC");
@@ -494,7 +491,7 @@ public class DocumentService {
         if (user.getVerifiedAt() == null)
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "user unverified");
         try (InputStream inputStream = file.getInputStream()) {
-            return new ResponseDto<>(200, "OK", PDFVerifier.verifySignature(inputStream));
+            return new ResponseDto<>(200, "OK", verifierService.verifySignature(inputStream));
         } catch (Exception e) {
             throw new RuntimeException("Verifikasi gagal: " + e.getMessage(), e);
         }
