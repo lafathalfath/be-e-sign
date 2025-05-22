@@ -17,6 +17,7 @@ import org.bh_foundation.e_sign.services.auth.JwtService;
 import org.bh_foundation.e_sign.utils.CertificateGenerator;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.springframework.http.HttpStatus;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -144,6 +145,11 @@ public class CertificateService {
         cert.setP12(null);
         certificateRepository.save(cert);
         return new ResponseDto<>(200, "OK", "Certificate revoked successfully");
+    }
+
+    @Scheduled(cron = "0 0 0 * * *")
+    public void nullifyP12IfExpired() {
+        certificateRepository.nullifyP12IfExpired();
     }
 
 }
