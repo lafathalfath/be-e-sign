@@ -113,17 +113,19 @@ public class DocumentService {
         List<Document> documents = documentRepository.findAllBySigners(user).reversed();
         List<Document> dataDocuments = new ArrayList<>();
         for (Document doc : documents) {
-            for (DocumentApproval dap : doc.getDocumentApprovals()) {
-                if (dap.getUser().getId() == userId) {
-                    List<DocumentApproval> listDap = new ArrayList<>();
-                    listDap.add(dap);
-                    doc.setDocumentApprovals(listDap);
+            if (!doc.getApplicant().equals(user)) {
+                for (DocumentApproval dap : doc.getDocumentApprovals()) {
+                    if (dap.getUser().getId() == userId) {
+                        List<DocumentApproval> listDap = new ArrayList<>();
+                        listDap.add(dap);
+                        doc.setDocumentApprovals(listDap);
+                    }
                 }
+                Set<User> docSign = new HashSet<>();
+                docSign.add(user);
+                doc.setSigners(docSign);
+                dataDocuments.add(doc);
             }
-            Set<User> docSign = new HashSet<>();
-            docSign.add(user);
-            doc.setSigners(docSign);
-            dataDocuments.add(doc);
         }
         return new ResponseDto<>(200, "OK", dataDocuments);
     }
