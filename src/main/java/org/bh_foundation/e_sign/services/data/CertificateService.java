@@ -89,12 +89,12 @@ public class CertificateService {
         if (signature == null)
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No Signature Found");
         List<Certificate> certificates = signature.getCertificates();
-        if (!certificates.isEmpty() && (certificates.getLast().getExpire().isBefore(LocalDateTime.now())
-                || !certificates.getLast().getIsRevoked())) {
-            Certificate cert = certificates.getLast();
-            cert.setIsRevoked(true);
-            cert.setP12(null);
-            certificateRepository.save(cert);
+        if (!certificates.isEmpty()) {
+            Certificate crt = certificates.getLast();
+            if (LocalDateTime.now().isBefore(crt.getExpire()))
+                crt.setIsRevoked(true);
+            crt.setP12(null);
+            certificateRepository.save(crt);
         }
         byte[] p12Blob = CertificateGenerator.generateP12(
                 user.getEmail(),
@@ -114,16 +114,22 @@ public class CertificateService {
 
         String subject = "Sub: " + subjectName.toString() +
                 "\nIss: " + issuerName.toString();
+        String serialNumber = cert.getSerialNumber().toString(16).toUpperCase();
+        // if (certificateRepository.findBySerialNumber(serialNumber) != null)
+        //     return new ResponseDto<>(201, "CREATED", "New certificate created successfully");
+        LocalDateTime expire = cert.getNotAfter().toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
         Certificate entity = new Certificate();
-        entity.setSerialNumber(cert.getSerialNumber().toString(16).toUpperCase());
+        entity.setSerialNumber(serialNumber);
+        // entity.setSerialNumber("0J9H8G7F7G845DF6");
         entity.setCreatedAt(LocalDateTime.now());
-        entity.setExpire(cert.getNotAfter().toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime());
+        entity.setExpire(expire);
         entity.setPassphrase(passwordEncoder.encode(passphrase));
         entity.setSignature(signature);
         entity.setIsRevoked(false);
         entity.setSubject(subject);
         entity.setP12(p12Blob);
-        certificateRepository.save(entity);
+        // entity.setP12(null);
+        certificateRepository.save(entity); // baris ini
         return new ResponseDto<>(201, "CREATED", "New certificate created successfully");
     }
 

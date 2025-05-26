@@ -28,7 +28,7 @@ public class Certificate {
     @Id
     @Column(name = "serial_number", unique = true, nullable = false)
     private String serialNumber;
-    @Column(unique = true, nullable = false)
+    @Column(nullable = false)
     private String subject;
     @Size(min = 6, message = "Passphrase must be at least 6 characters long")
     @NotNull

@@ -20,7 +20,6 @@ public class FileStorageService {
     private String BASE_URL;
 
     public String store(MultipartFile file, String subject, Integer maxSize, List<String> mimes) throws IOException {
-
         if (maxSize != null && maxSize > 0 && maxSize < file.getSize()) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "File size exceeds maximum allowed size");
         if (mimes != null && !mimes.isEmpty() && !mimes.contains(file.getContentType())) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "File type was not supported");
 
@@ -49,6 +48,23 @@ public class FileStorageService {
             if (!createDir) return null;
         }
         String filename = UUID.randomUUID().toString() + "." + type;
+        String fileUrl = BASE_URL + "/api/storage/" + subject + "/" + filename;
+        fileUrl = fileUrl.replaceAll(" ", "%20");
+        try (FileOutputStream fos = new FileOutputStream(targetPath+"/"+filename)) {
+            fos.write(blob);
+            return fileUrl;
+        } catch (Exception e) {
+            throw e;
+        }
+    }
+
+    public String storeBlobCustomFilename(byte[] blob, String subject, String filename, String type) throws Exception {
+        String targetPath = PathComponent.STORAGE_PATH + subject + "/";
+        File targetDir = new File(targetPath);
+        if (!targetDir.exists()) {
+            boolean createDir = targetDir.mkdirs();
+            if (!createDir) return null;
+        }
         String fileUrl = BASE_URL + "/api/storage/" + subject + "/" + filename;
         fileUrl = fileUrl.replaceAll(" ", "%20");
         try (FileOutputStream fos = new FileOutputStream(targetPath+"/"+filename)) {

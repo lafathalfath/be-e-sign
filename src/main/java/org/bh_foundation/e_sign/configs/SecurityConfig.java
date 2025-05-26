@@ -62,7 +62,7 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(req -> req
                         .requestMatchers(
-                                "/esign/**",
+                                "/api/document/get-url-by-filename/{filename}",
                                 "/api/auth/login",
                                 "/api/storage/**",
                                 "/api/auth/register",

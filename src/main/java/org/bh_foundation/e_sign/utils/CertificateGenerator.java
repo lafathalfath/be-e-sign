@@ -6,6 +6,7 @@ import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.KeyStore;
 import java.security.PublicKey;
+import java.security.SecureRandom;
 import java.security.Security;
 import java.security.cert.X509Certificate;
 import java.util.Date;
@@ -43,7 +44,8 @@ public class CertificateGenerator {
         keyGen.initialize(2048);
         KeyPair keyPair = keyGen.generateKeyPair();
         // generate serial number
-        UUID uuid = UUID.randomUUID();
+        // UUID uuid = UUID.randomUUID();
+        UUID uuid = UUID.nameUUIDFromBytes((UUID.randomUUID().toString() + System.nanoTime()).getBytes());
         BigInteger serial = new BigInteger(uuid.toString().replace("-", ""), 16);
         // set subject and issuer
         String subDn = "CN=" + commonName + ", E=" + email;

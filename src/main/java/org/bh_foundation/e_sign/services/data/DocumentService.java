@@ -21,6 +21,7 @@ import org.apache.tomcat.util.http.fileupload.ByteArrayOutputStream;
 import org.bh_foundation.e_sign.dto.DocSize;
 import org.bh_foundation.e_sign.dto.RenderChoice;
 import org.bh_foundation.e_sign.dto.ResponseDto;
+import org.bh_foundation.e_sign.dto.SignMethodDto;
 import org.bh_foundation.e_sign.models.Certificate;
 import org.bh_foundation.e_sign.models.Document;
 import org.bh_foundation.e_sign.models.DocumentApproval;
@@ -35,7 +36,6 @@ import org.bh_foundation.e_sign.services.storage.FileStorageService;
 import org.bh_foundation.e_sign.utils.Crypt;
 import org.bh_foundation.e_sign.utils.ImageUtility;
 import org.bh_foundation.e_sign.utils.QRCodeGenerator;
-import org.bh_foundation.e_sign.utils.RandomStringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -113,7 +113,9 @@ public class DocumentService {
         List<Document> documents = documentRepository.findAllBySigners(user).reversed();
         List<Document> dataDocuments = new ArrayList<>();
         for (Document doc : documents) {
-            if (!doc.getApplicant().equals(user)) {
+            boolean onlyMe = false;
+            if (doc.getSigners().size() == 1 && doc.getSigners().iterator().next().equals(user)) onlyMe = true;
+            if (!onlyMe) {
                 for (DocumentApproval dap : doc.getDocumentApprovals()) {
                     if (dap.getUser().getId() == userId) {
                         List<DocumentApproval> listDap = new ArrayList<>();
@@ -308,9 +310,9 @@ public class DocumentService {
         if (LocalDateTime.now().isAfter(certificate.getExpire()))
             throw new ResponseStatusException(HttpStatus.FORBIDDEN);
 
-        byte[] signedDocument = signMethod(signedFile, approval.getPageNumber(), renderChoice, signature, user, rect,
-                docSize, certificate.getP12(), passphrase);
-        String url = fileStorageService.storeBlob(signedDocument, "document", "pdf");
+        SignMethodDto signMethodDto = signMethod(signedFile, approval.getPageNumber(), renderChoice, signature, user, rect, docSize, certificate.getP12(), passphrase);
+        byte[] signedDocument = signMethodDto.getBlob();
+        String url = fileStorageService.storeBlobCustomFilename(signedDocument, "document", signMethodDto.getFilename(), "pdf");
         document.setUrl(url);
         document.setSignedCount(document.getSignedCount() + 1);
         if (document.getSignedCount().equals(document.getRequestCount()))
@@ -360,8 +362,9 @@ public class DocumentService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN);
         if (LocalDateTime.now().isAfter(certificate.getExpire()))
             throw new ResponseStatusException(HttpStatus.FORBIDDEN);
-        byte[] blob = signMethod(file, page, renderChoice, mySignature, user, rect, docSize, certificate.getP12(), passphrase);
-        String url = fileStorageService.storeBlob(blob, "document", "pdf");
+        SignMethodDto signMethodDto = signMethod(file, page, renderChoice, mySignature, user, rect, docSize, certificate.getP12(), passphrase);
+        byte[] blob = signMethodDto.getBlob();
+        String url = fileStorageService.storeBlobCustomFilename(blob, "document", signMethodDto.getFilename(), "pdf");
         Document newDoc = new Document();
         DocumentApproval documentApproval = new DocumentApproval();
         newDoc.setApplicant(user);
@@ -386,7 +389,7 @@ public class DocumentService {
         return blob;
     }
 
-    private byte[] signMethod(MultipartFile file, Integer page, RenderChoice renderChoice, Signature mySignature,
+    private SignMethodDto signMethod(MultipartFile file, Integer page, RenderChoice renderChoice, Signature mySignature,
             User user,
             Rectangle rect,
             DocSize docSize, byte[] certificate, String passphrase) throws Exception {
@@ -422,8 +425,8 @@ public class DocumentService {
                 .setLocation(country)
                 .setPageRect(exportSignRectangle)
                 .setPageNumber(page);
-        String filename = Math.abs(LocalDateTime.now().hashCode()) + "-" + RandomStringUtils.generate(32) + ".pdf";
-        String downloadUrl = BASE_URL + "/esign/" + filename;
+        String filename = UUID.randomUUID().toString() + ".pdf";
+        String downloadUrl = CLIENT_URL + "/esign/" + filename;
         String stamp = "digitally signed @ " + CLIENT_URL;
         if (CLIENT_URL.startsWith("http://"))
             stamp = stamp.replace("http://", "");
@@ -482,8 +485,10 @@ public class DocumentService {
         pdfDoc.close();
 
         byte[] outputByte = signedPdfOutput.toByteArray();
-
-        return outputByte;
+        SignMethodDto dto = new SignMethodDto();
+        dto.setFilename(filename);
+        dto.setBlob(outputByte);
+        return dto;
     }
 
     public ResponseDto<?> verify(MultipartFile file) {
@@ -497,6 +502,13 @@ public class DocumentService {
         } catch (Exception e) {
             throw new RuntimeException("Verifikasi gagal: " + e.getMessage(), e);
         }
+    }
+
+    public String getUrlByFilename(String filename) {
+        if (filename.equals(null)) throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
+        String url = documentRepository.findUrlByFilename(filename);
+        if (url.equals(null)) throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+        return url;
     }
 
 }
