@@ -58,7 +58,7 @@ public class CertificateGenerator {
         issuerBuilder.addRDN(BCStyle.CN, "Bogor Heritage Foundation");
         X500Name issuer = issuerBuilder.build();
         Date notBefore = new Date();
-        Date notAfter = new Date(System.currentTimeMillis() + (Long.parseLong(""+(maxAgeDays*24*60*60*1000))));
+        Date notAfter = new Date(System.currentTimeMillis() + (Long.parseLong(""+maxAgeDays)*24*60*60*1000));
         // build certificate
         ContentSigner signer = new JcaContentSignerBuilder("SHA256withRSA").build(keyPair.getPrivate());
         X509v3CertificateBuilder certBuilder = new JcaX509v3CertificateBuilder(

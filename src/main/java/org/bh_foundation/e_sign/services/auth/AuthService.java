@@ -97,7 +97,9 @@ public class AuthService {
         String token = RandomStringUtils.generate(256);
         user.setVerificationToken(token);
         userRepository.save(user);
-        mailService.sendVerificationEmail(user.getEmail(), BASE_URL + "/api/auth/verification/" + token + "/verify");
+        mailService.sendVerificationEmail(user.getEmail(), BASE_URL + "/api/auth/verification/" + token + "/verify"); // ini
+        // mailService.sendVerificationEmail(user.getEmail(),
+        // "http://localhost:5173/verifikasi/98h76f58h7g6f5d");
         return new ResponseDto<>(200, "Verification email sent", null);
     }
 
@@ -113,7 +115,7 @@ public class AuthService {
         user = userRepository.save(user);
 
         mailService.sendVerificationEmail(user.getEmail(),
-                CLIENT_URL + "/verifikasi/" + verificationToken);
+                BASE_URL + "/api/auth/verification/" + verificationToken + "/verify");
 
         String token = jwtService.generateToken(user);
         return new AuthenticationResponseDto(token);
