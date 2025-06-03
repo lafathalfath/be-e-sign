@@ -20,5 +20,8 @@ public interface DocumentApprovalRepository extends JpaRepository<DocumentApprov
 
     @Query("SELECT da FROM DocumentApproval da WHERE da.serialNumber = :serial")
     List<DocumentApproval> findBySerialNumber(String serial);
+
+    @Query("SELECT da FROM DocumentApproval da WHERE da.signedDocument LIKE CONCAT('%', :filename)")
+    DocumentApproval findByFilename(String filename);
     
 }

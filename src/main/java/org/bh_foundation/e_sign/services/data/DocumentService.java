@@ -113,20 +113,31 @@ public class DocumentService {
         List<Document> documents = documentRepository.findAllBySigners(user).reversed();
         List<Document> dataDocuments = new ArrayList<>();
         for (Document doc : documents) {
-            boolean onlyMe = false;
-            if (doc.getSigners().size() == 1 && doc.getSigners().iterator().next().equals(user)) onlyMe = true;
-            if (!onlyMe) {
+            boolean onlyMeAndMine = false;
+            if (doc.getSigners().size() == 1 && doc.getSigners().iterator().next().equals(user)
+                    && doc.getApplicant().equals(user))
+                onlyMeAndMine = true;
+            if (!onlyMeAndMine) {
+                boolean enable = true;
+                int indexDap = 0;
                 for (DocumentApproval dap : doc.getDocumentApprovals()) {
+                    if (doc.getOrderSign() && dap.getUser().equals(user) && indexDap > 0 && doc.getDocumentApprovals().get(indexDap - 1).getSignedDocument() == null) {
+                        enable = false;
+                        break;
+                    }
                     if (dap.getUser().getId() == userId) {
                         List<DocumentApproval> listDap = new ArrayList<>();
                         listDap.add(dap);
                         doc.setDocumentApprovals(listDap);
                     }
+                    indexDap++;
                 }
-                Set<User> docSign = new HashSet<>();
-                docSign.add(user);
-                doc.setSigners(docSign);
-                dataDocuments.add(doc);
+                if (enable) {
+                    Set<User> docSign = new HashSet<>();
+                    docSign.add(user);
+                    doc.setSigners(docSign);
+                    dataDocuments.add(doc);
+                }
             }
         }
         return new ResponseDto<>(200, "OK", dataDocuments);
@@ -293,7 +304,7 @@ public class DocumentService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "document required");
         if (!document.getSigners().contains(user))
             throw new ResponseStatusException(HttpStatus.FORBIDDEN);
-        if (document.getOrderSign() && !document.getSigners().toArray()[document.getSignedCount()].equals(user))
+        if (document.getOrderSign() && !document.getDocumentApprovals().get(document.getSignedCount()).getUser().equals(user))
             throw new ResponseStatusException(HttpStatus.FORBIDDEN);
 
         DocumentApproval approval = documentApprovalRepository.findByDocumentIdAndUserId(decryptedId, userId);
@@ -310,9 +321,11 @@ public class DocumentService {
         if (LocalDateTime.now().isAfter(certificate.getExpire()))
             throw new ResponseStatusException(HttpStatus.FORBIDDEN);
 
-        SignMethodDto signMethodDto = signMethod(signedFile, approval.getPageNumber(), renderChoice, signature, user, rect, docSize, certificate.getP12(), passphrase);
+        SignMethodDto signMethodDto = signMethod(signedFile, approval.getPageNumber(), renderChoice, signature, user,
+                rect, docSize, certificate.getP12(), passphrase);
         byte[] signedDocument = signMethodDto.getBlob();
-        String url = fileStorageService.storeBlobCustomFilename(signedDocument, "document", signMethodDto.getFilename(), "pdf");
+        String url = fileStorageService.storeBlobCustomFilename(signedDocument, "document", signMethodDto.getFilename(),
+                "pdf");
         document.setUrl(url);
         document.setSignedCount(document.getSignedCount() + 1);
         if (document.getSignedCount().equals(document.getRequestCount()))
@@ -362,7 +375,8 @@ public class DocumentService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN);
         if (LocalDateTime.now().isAfter(certificate.getExpire()))
             throw new ResponseStatusException(HttpStatus.FORBIDDEN);
-        SignMethodDto signMethodDto = signMethod(file, page, renderChoice, mySignature, user, rect, docSize, certificate.getP12(), passphrase);
+        SignMethodDto signMethodDto = signMethod(file, page, renderChoice, mySignature, user, rect, docSize,
+                certificate.getP12(), passphrase);
         byte[] blob = signMethodDto.getBlob();
         String url = fileStorageService.storeBlobCustomFilename(blob, "document", signMethodDto.getFilename(), "pdf");
         Document newDoc = new Document();
@@ -505,9 +519,20 @@ public class DocumentService {
     }
 
     public String getUrlByFilename(String filename) {
-        if (filename.equals(null)) throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
+        if (filename.equals(null))
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
         String url = documentRepository.findUrlByFilename(filename);
-        if (url.equals(null)) throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+        if (url == null) {
+            DocumentApproval da = documentApprovalRepository.findByFilename(filename);
+            if (da == null)
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+            Document doc = da.getDocument();
+            if (doc == null)
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+            url = doc.getUrl();
+            if (url == null)
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+        }
         return url;
     }
 

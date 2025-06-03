@@ -113,7 +113,7 @@ public class AuthService {
         user = userRepository.save(user);
 
         mailService.sendVerificationEmail(user.getEmail(),
-                BASE_URL + "/api/auth/verification/" + verificationToken + "/verify");
+                CLIENT_URL + "/verifikasi/" + verificationToken);
 
         String token = jwtService.generateToken(user);
         return new AuthenticationResponseDto(token);

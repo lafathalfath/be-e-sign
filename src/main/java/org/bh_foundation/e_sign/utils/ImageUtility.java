@@ -10,6 +10,8 @@ import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 
 import org.bh_foundation.e_sign.models.User;
@@ -84,7 +86,7 @@ public class ImageUtility {
         String verifyAt = "Verifiy at " + CLIENT_URL;
         int width = inputImage.getWidth() * 3;
         int height = inputImage.getHeight();
-        int titleSize = height / 6;
+        int titleSize = height / 7;
         int fontSize = height / 10;
         int textPadding = height / 20;
         int paddingTextToImage = height / 20;
@@ -98,7 +100,13 @@ public class ImageUtility {
         g2d.setColor(Color.BLACK);
         g2d.drawString(signedBy, textX, textPadding * 2);
         g2d.setFont(new Font("Arial", Font.BOLD, titleSize));
-        g2d.drawString(title, textX, textHeight + textPadding * 2);
+        FontMetrics fmTitle = g2d.getFontMetrics();
+        int maxTextWidth = width - textX - 10;
+        List<String> wrappedTitle = wrapText(title, fmTitle, maxTextWidth);
+        int titleStartY = textHeight + textPadding;
+        for (int i = 0; i < wrappedTitle.size(); i++)
+            g2d.drawString(wrappedTitle.get(i), textX, titleStartY + (i * (titleSize + 5)));
+        // g2d.drawString(title, textX, textHeight + textPadding * 2);
         g2d.setFont(new Font("Arial", Font.PLAIN, fontSize));
         g2d.drawString(date, textX, height - textHeight);
         g2d.drawString(verifyAt, textX, height - textPadding);
@@ -133,6 +141,23 @@ public class ImageUtility {
         g2d.drawLine(urlWidth*2 - textPadding + width/2, height - textPadding, width - textPadding, height - textPadding);
         g2d.dispose();
         return outputImage;
+    }
+
+    private static List<String> wrapText(String text, FontMetrics fm, int maxWidth) {
+        List<String> lines = new ArrayList<>();
+        StringBuilder line = new StringBuilder();
+
+        for (String word : text.split(" ")) {
+            String testLine = line + (line.length() > 0 ? " " : "") + word;
+            if (fm.stringWidth(testLine) > maxWidth) {
+                lines.add(line.toString());
+                line = new StringBuilder(word);
+            } else {
+                line = new StringBuilder(testLine);
+            }
+        }
+        lines.add(line.toString());
+        return lines;
     }
 
 }
