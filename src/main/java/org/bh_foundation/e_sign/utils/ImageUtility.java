@@ -10,8 +10,8 @@ import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.List;
+// import java.util.ArrayList;
+// import java.util.List;
 import java.util.Locale;
 
 import org.bh_foundation.e_sign.models.User;
@@ -78,38 +78,43 @@ public class ImageUtility {
             CLIENT_URL = CLIENT_URL.replace("http://", "");
         else if (CLIENT_URL.startsWith("https://"))
             CLIENT_URL = CLIENT_URL.replace("https://", "");
-        String signedBy = "Digitally signed by:";
-        String title = username;
+        // String signedBy = "Digitally signed by:";
+        // String title = username;
         DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("EEE, dd MMM yyyy HH:mm:ss", Locale.ENGLISH);
         String dateTime = LocalDateTime.now().format(dateTimeFormatter);
         String date = "Date: " + dateTime;
         String verifyAt = "Verifiy at " + CLIENT_URL;
-        int width = inputImage.getWidth() * 3;
+        // int width = inputImage.getWidth() * 3;
+        int width = inputImage.getWidth();
         int height = inputImage.getHeight();
-        int titleSize = height / 7;
-        int fontSize = height / 10;
-        int textPadding = height / 20;
-        int paddingTextToImage = height / 20;
-        BufferedImage outputImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        // int titleSize = height / 7;
+        int fontSize = height / 18;
+        // int fontSize = height / 7;
+        // int textPadding = height / 20;
+        // int textPadding = height / 14;
+        // int paddingTextToImage = height / 20;
+        // int paddingTextToImage = height / 14;
+        BufferedImage outputImage = new BufferedImage(width, height + fontSize/4, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g2d = outputImage.createGraphics();
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        g2d.drawImage(inputImage, 0, 0, null);
-        int textHeight = fontSize + textPadding * 2;
-        int textX = inputImage.getWidth() + paddingTextToImage;
+        g2d.drawImage(inputImage.getScaledInstance(width*15/17, height*15/17, 0), 0, 0, null);
+        // int textHeight = fontSize + textPadding * 2;
+        // int textX = inputImage.getWidth() + paddingTextToImage;
         g2d.setFont(new Font("Arial", Font.PLAIN, fontSize));
         g2d.setColor(Color.BLACK);
-        g2d.drawString(signedBy, textX, textPadding * 2);
-        g2d.setFont(new Font("Arial", Font.BOLD, titleSize));
-        FontMetrics fmTitle = g2d.getFontMetrics();
-        int maxTextWidth = width - textX - 10;
-        List<String> wrappedTitle = wrapText(title, fmTitle, maxTextWidth);
-        int titleStartY = textHeight + textPadding;
-        for (int i = 0; i < wrappedTitle.size(); i++)
-            g2d.drawString(wrappedTitle.get(i), textX, titleStartY + (i * (titleSize + 5)));
+        // g2d.drawString(signedBy, textX, textPadding * 2);
+        // g2d.setFont(new Font("Arial", Font.BOLD, titleSize));
+        // FontMetrics fmTitle = g2d.getFontMetrics();
+        // int maxTextWidth = width - textX - 10;
+        // List<String> wrappedTitle = wrapText(title, fmTitle, maxTextWidth);
+        // int titleStartY = textHeight + textPadding;
+        // for (int i = 0; i < wrappedTitle.size(); i++)
+        //     g2d.drawString(wrappedTitle.get(i), textX, titleStartY + (i * (titleSize + 5)));
         // g2d.drawString(title, textX, textHeight + textPadding * 2);
-        g2d.setFont(new Font("Arial", Font.PLAIN, fontSize));
-        g2d.drawString(date, textX, height - textHeight);
-        g2d.drawString(verifyAt, textX, height - textPadding);
+        // g2d.setFont(new Font("Arial", Font.PLAIN, fontSize));
+
+        g2d.drawString(date, 0, height - fontSize*5/4);
+        g2d.drawString(verifyAt, 0, height - fontSize/4);
         g2d.dispose();
         return outputImage;
     }
@@ -143,21 +148,21 @@ public class ImageUtility {
         return outputImage;
     }
 
-    private static List<String> wrapText(String text, FontMetrics fm, int maxWidth) {
-        List<String> lines = new ArrayList<>();
-        StringBuilder line = new StringBuilder();
+    // private static List<String> wrapText(String text, FontMetrics fm, int maxWidth) {
+    //     List<String> lines = new ArrayList<>();
+    //     StringBuilder line = new StringBuilder();
 
-        for (String word : text.split(" ")) {
-            String testLine = line + (line.length() > 0 ? " " : "") + word;
-            if (fm.stringWidth(testLine) > maxWidth) {
-                lines.add(line.toString());
-                line = new StringBuilder(word);
-            } else {
-                line = new StringBuilder(testLine);
-            }
-        }
-        lines.add(line.toString());
-        return lines;
-    }
+    //     for (String word : text.split(" ")) {
+    //         String testLine = line + (line.length() > 0 ? " " : "") + word;
+    //         if (fm.stringWidth(testLine) > maxWidth) {
+    //             lines.add(line.toString());
+    //             line = new StringBuilder(word);
+    //         } else {
+    //             line = new StringBuilder(testLine);
+    //         }
+    //     }
+    //     lines.add(line.toString());
+    //     return lines;
+    // }
 
 }
