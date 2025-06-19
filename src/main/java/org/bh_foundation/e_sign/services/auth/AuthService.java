@@ -90,6 +90,31 @@ public class AuthService {
         return true;
     }
 
+    public ResponseDto<?> verifyWithOtp(String otp) {
+        Long userId = jwtService.extractUserId(servletRequest.getHeader("Authorization"));
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
+        if (!passwordEncoder.matches(otp, user.getVerificationToken()))
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+        user.setVerifiedAt(LocalDateTime.now());
+        user.setVerificationToken(null);
+        userRepository.save(user);
+        String jwtToken = jwtService.generateToken(user);
+        Cookie cookie = new Cookie("bhf-e-sign-access-token", jwtToken);
+        cookie.setHttpOnly(false);
+        cookie.setPath("/");
+        if ((!CLIENT_URL.startsWith("http://") && !CLIENT_URL.startsWith("https://"))
+                || (!BASE_URL.startsWith("http://") && !BASE_URL.startsWith("https://")))
+            throw new ResponseStatusException(500, "Internal Server Error", null);
+        if (CLIENT_URL.startsWith("https://") && BASE_URL.startsWith("https://"))
+            cookie.setSecure(true);
+        else
+            cookie.setSecure(false);
+        cookie.setMaxAge(1 * 60 * 60);
+        servletResponse.addCookie(cookie);
+        return new ResponseDto<>(200, "Verification Successful", null);
+    }
+
     public ResponseDto<?> resendVerificationEmail() throws MessagingException, IOException {
         Long userId = jwtService.extractUserId(servletRequest.getHeader("Authorization"));
         User user = userRepository.findById(userId)
@@ -102,20 +127,36 @@ public class AuthService {
         // "http://localhost:5173/verifikasi/98h76f58h7g6f5d");
         return new ResponseDto<>(200, "Verification email sent", null);
     }
+    
+    public ResponseDto<?> resendOtpEmail() throws MessagingException, IOException {
+        Long userId = jwtService.extractUserId(servletRequest.getHeader("Authorization"));
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
+        // String token = RandomStringUtils.generate(256);
+        String otp = RandomStringUtils.generateOtp();
+        // user.setVerificationToken(token);
+        user.setVerificationToken(passwordEncoder.encode(otp));
+        userRepository.save(user);
+        mailService.sendOtpEmail(user.getEmail(), otp);
+        return new ResponseDto<>(200, "Verification email sent", null);
+    }
 
     public AuthenticationResponseDto register(User request) throws MessagingException, IOException {
         User user = new User();
-        String verificationToken = RandomStringUtils.generate(256);
+        // String verificationToken = RandomStringUtils.generate(256);
+        String otp = RandomStringUtils.generateOtp();
 
         user.setUsername(request.getUsername());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setEmail(request.getEmail());
         user.setRole(Role.USER);
-        user.setVerificationToken(verificationToken);
+        // user.setVerificationToken(verificationToken);
+        user.setVerificationToken(passwordEncoder.encode(otp));
         user = userRepository.save(user);
 
-        mailService.sendVerificationEmail(user.getEmail(),
-                BASE_URL + "/api/auth/verification/" + verificationToken + "/verify");
+        // mailService.sendVerificationEmail(user.getEmail(),
+        //         BASE_URL + "/api/auth/verification/" + verificationToken + "/verify");
+        mailService.sendOtpEmail(user.getEmail(), otp);
 
         String token = jwtService.generateToken(user);
         return new AuthenticationResponseDto(token);

@@ -34,4 +34,9 @@ public class RandomStringUtils {
         }
         return stringBuilder.toString();
     }
+
+    public static String generateOtp() {
+        int otp = 100000 + RANDOM.nextInt(900000);
+        return String.valueOf(otp);
+    }
 }

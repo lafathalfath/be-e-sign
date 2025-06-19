@@ -49,6 +49,26 @@ public class MailService {
         mailSender.send(message);
     }
 
+    public void sendOtpEmail(String toEmail, String otp) throws MessagingException, IOException {
+
+        MimeMessage message = mailSender.createMimeMessage();
+        MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+        helper.setTo(toEmail);
+        helper.setFrom(USER_EMAIL);
+        helper.setSubject("Verify Your Account");
+
+        String htmlTemplate = new String(Files.readAllBytes(
+                Paths.get(new ClassPathResource("templates/mail/otp.html").getURI())), StandardCharsets.UTF_8);
+        String htmlContent = htmlTemplate.replace("{{VERIFICATION_CODE}}", otp);
+        helper.setText(htmlContent, true);
+
+        ClassPathResource logoImage = new ClassPathResource("static/images/company_logo.png");
+        helper.addInline("{{COMPANY_LOGO}}", logoImage);
+
+        mailSender.send(message);
+    }
+
     public void sendResetPasswordEmail(String toEmail, String token) throws MessagingException, IOException {
         MimeMessage message = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");

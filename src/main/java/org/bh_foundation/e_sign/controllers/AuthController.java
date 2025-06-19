@@ -71,9 +71,15 @@ public class AuthController {
         return new RedirectView(CLIENT_URL);
     }
 
+    @PostMapping("/verification-with-otp")
+    public ResponseEntity<?> verificationWithOtp(@RequestParam String otp) {
+        return ResponseEntity.ok(authService.verifyWithOtp(otp));
+    }
+
     @GetMapping("/verification/resend")
     public ResponseEntity<?> resendVerification() throws MessagingException, IOException {
-        return ResponseEntity.ok(authService.resendVerificationEmail());
+        // return ResponseEntity.ok(authService.resendVerificationEmail());
+        return ResponseEntity.ok(authService.resendOtpEmail());
     }
 
     @PostMapping("/forgot-password")
