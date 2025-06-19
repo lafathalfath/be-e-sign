@@ -14,7 +14,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.servlet.view.RedirectView;
 
 import jakarta.mail.MessagingException;
 import jakarta.validation.Valid;
@@ -63,13 +62,13 @@ public class AuthController {
         return ResponseEntity.ok(authService.register(request));
     }
 
-    @GetMapping("/verification/{token}/verify")
-    public RedirectView verification(@PathVariable String token) {
-        boolean verified = authService.verification(token);
-        if (verified)
-            return new RedirectView(CLIENT_URL + "/dashboard");
-        return new RedirectView(CLIENT_URL);
-    }
+    // @GetMapping("/verification/{token}/verify")
+    // public RedirectView verification(@PathVariable String token) {
+    //     boolean verified = authService.verification(token);
+    //     if (verified)
+    //         return new RedirectView(CLIENT_URL + "/dashboard");
+    //     return new RedirectView(CLIENT_URL);
+    // }
 
     @PostMapping("/verification-with-otp")
     public ResponseEntity<?> verificationWithOtp(@RequestParam String otp) {
