@@ -42,7 +42,7 @@ public class PDFVerifierService {
             PdfPKCS7 pkcs7 = signUtil.readSignatureData(name);
             boolean isVerified = pkcs7.verifySignatureIntegrityAndAuthenticity();
             @SuppressWarnings("deprecation")
-            Locale locale = new Locale("id", "ID");
+            Locale locale = new Locale("en", "ID");
             SimpleDateFormat formatter = new SimpleDateFormat("EEEE, dd MM yyyy - HH.mm.ss", locale);
             if (isVerified) {
                 String serial = pkcs7.getSigningCertificate().getSerialNumber().toString(16).toUpperCase();
