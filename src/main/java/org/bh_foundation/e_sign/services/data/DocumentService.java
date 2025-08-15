@@ -451,7 +451,7 @@ public class DocumentService {
 
         if (renderChoice.equals(RenderChoice.IMAGE)) {
             BufferedImage image = ImageIO.read(new ByteArrayInputStream(mySignature.getBytes()));
-            BufferedImage borderedImage = ImageUtility.addBorderImageSign(image, 10, 10, stamp, user, 24);
+            BufferedImage borderedImage = ImageUtility.addBorderImageSign(image, 10, 5, stamp, user, 24);
             ByteArrayOutputStream baosImage = new ByteArrayOutputStream();
             ImageIO.write(borderedImage, "png", baosImage);
             ImageData imageData = ImageDataFactory.create(baosImage.toByteArray());

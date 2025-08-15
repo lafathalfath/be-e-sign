@@ -140,7 +140,7 @@ public class ImageUtility {
         g2d.setFont(new Font("Arial", Font.PLAIN, fontSize));
         g2d.drawString(text, textPadding + width/2, textPadding*2);
         g2d.drawString(CLIENT_URL, textPadding + width/2, height);
-        g2d.setStroke(new BasicStroke(height/80));
+        g2d.setStroke(new BasicStroke(height/160));
         g2d.drawLine(textWidth*2 - textPadding + width/2, textPadding, width - textPadding, textPadding);
         g2d.drawLine(width - textPadding, textPadding, width - textPadding, height - textPadding);
         g2d.drawLine(urlWidth*2 - textPadding + width/2, height - textPadding, width - textPadding, height - textPadding);
