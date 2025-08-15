@@ -72,6 +72,8 @@ public class SecurityConfig {
                                 "/api/auth/validate-reset-password-token",
                                 "/api/auth/reset-password/{token}")
                         .permitAll()
+                        .requestMatchers("/api/stamp/**")
+                        .hasRole("ADMIN")
                         .anyRequest()
                         .authenticated()
                 // .denyAll()
