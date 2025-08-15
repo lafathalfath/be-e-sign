@@ -26,17 +26,16 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
-    
+
     @Value("${client.url}")
     private String CLIENT_URL;
-    
+
     private final UserDetailsImplement userDetailsImplement;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
     public SecurityConfig(
-        UserDetailsImplement userDetailsImplement,
-        JwtAuthenticationFilter jwtAuthenticationFilter
-    ) {
+            UserDetailsImplement userDetailsImplement,
+            JwtAuthenticationFilter jwtAuthenticationFilter) {
         this.userDetailsImplement = userDetailsImplement;
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
     }
@@ -45,9 +44,11 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(List.of(CLIENT_URL));
+        // configuration.setAllowedOriginPatterns(List.of("*"));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept"));
         configuration.setAllowCredentials(true);
+        // configuration.setExposedHeaders(List.of("Authorization"));
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
@@ -56,20 +57,28 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.exceptionHandling(exce -> exce.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
-            .csrf(AbstractHttpConfigurer::disable)
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-            .authorizeHttpRequests(req -> req
-                .requestMatchers(
-                    "/api/request-sign/**"
+                .headers(headers -> headers.frameOptions(frameOptions -> frameOptions.sameOrigin()))
+                .csrf(AbstractHttpConfigurer::disable)
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .authorizeHttpRequests(req -> req
+                        .requestMatchers(
+                                "/api/document/get-url-by-filename/{filename}",
+                                "/api/auth/login",
+                                "/api/storage/**",
+                                "/api/auth/register",
+                                "/api/auth/verification/{token}/verify",
+                                "/api/auth/forgot-password",
+                                "/api/auth/validate-reset-password-token",
+                                "/api/auth/reset-password/{token}")
+                        .permitAll()
+                        .anyRequest()
+                        .authenticated()
+                // .denyAll()
                 )
-                .authenticated()
-                .anyRequest()
-                .permitAll()
-            )
-            .userDetailsService(userDetailsImplement)
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
-            return http.build();
+                .userDetailsService(userDetailsImplement)
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+        return http.build();
     }
 
     @Bean

@@ -1,5 +1,7 @@
 package org.bh_foundation.e_sign.seeder;
 
+import java.time.LocalDateTime;
+
 import org.bh_foundation.e_sign.models.Role;
 import org.bh_foundation.e_sign.models.User;
 import org.bh_foundation.e_sign.repository.UserRepository;
@@ -22,6 +24,7 @@ public class UserSeeder {
         admin.setEmail(email);
         admin.setPassword(passwordEncoder.encode(password));
         admin.setRole(role);
+        admin.setVerifiedAt(LocalDateTime.now());
         userRepository.save(admin);
         System.out.println("--- SEEDER: User Seeding Successfully !! ------------------------------");
         return admin;

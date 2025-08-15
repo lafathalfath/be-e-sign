@@ -1,21 +1,31 @@
 server:
-    base-url: https://host
+#    address: 0.0.0.0 // only for deploy in docker
+    base-url: {server-host:port}
     port: 8080
-    secret-key: 
+    secret-key: 32-byte/256-bit
+    encrypt-key: 16-byte/128-bit
     error:
         include-message: always
 
 client:
-    url: http://clientHost
+    url: {client-host:port}
 
 spring:
     application:
         name: e-sign
+
+    servlet:
+        multipart:
+            enabled: true
+            max-file-size: 50MB
+            max-request-size: 50MB
+
     datasource:
         driver-class-name: com.mysql.cj.jdbc.Driver
-        url: jdbc:mysql://mysqlHost/e-sign
-        username: 
-        password: 
+        url: jdbc:mysql://{db-host}:{db-port}/{db-name}
+        username: {db-username}
+        password: {db-password}
+
     jpa:
         hibernate:
             ddl-auto: update
@@ -26,3 +36,15 @@ spring:
                 format-sql: true
         database: mysql
         database-platform: org.hibernate.dialect.MySQL8Dialect
+
+    mail:
+        host: {smtp-host}
+        port: {smtp-port}
+        username: {mailer-username@example.com}
+        password: {mailer-password}
+        properties:
+            mail:
+                smtp:
+                    auth: true
+                    starttls:
+                        enable: true

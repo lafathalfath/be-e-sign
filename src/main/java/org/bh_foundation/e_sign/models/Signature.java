@@ -1,19 +1,25 @@
 package org.bh_foundation.e_sign.models;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
+import org.hibernate.annotations.CreationTimestamp;
 import org.springframework.format.annotation.DateTimeFormat;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
+import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -24,21 +30,29 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Table(name = "signature")
 public class Signature {
-    
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id")
     private Long id;
 
-    @Column(name = "passphrase", nullable = false)
-    private String passphrase;
+    @Column(name = "bytes", nullable = false, columnDefinition = "LONGBLOB")
+    @NotNull
+    private byte[] bytes;
 
-    @Column(name = "bytes", nullable = false, columnDefinition = "TEXT")
-    private String bytes;
-
-    @Column(name = "expire", nullable = false)
+    @Column(name = "type", nullable = false)
+    @NotNull
+    private String type;
+    
+    @Column(name = "created_at", nullable = true, updatable = true)
     @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    private LocalDateTime expire;
+    @CreationTimestamp
+    private LocalDateTime createdAt;
+
+    // RELATIONS
+    @OneToMany(mappedBy = "signature", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    @OrderBy("createdAt ASC")
+    private List<Certificate> certificates;
 
     @OneToOne
     @JoinColumn(name = "user_id", nullable = false, referencedColumnName = "id")

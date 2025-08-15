@@ -1,36 +1,111 @@
 package org.bh_foundation.e_sign.services.data;
 
+import java.io.IOException;
+import java.util.Base64;
+
 import org.bh_foundation.e_sign.dto.ResponseDto;
 import org.bh_foundation.e_sign.models.Signature;
+import org.bh_foundation.e_sign.models.User;
 import org.bh_foundation.e_sign.repository.SignatureRepository;
+import org.bh_foundation.e_sign.repository.UserRepository;
+import org.bh_foundation.e_sign.services.auth.JwtService;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 @Service
 public class SignatureService {
-    
+
     private final SignatureRepository signatureRepository;
+    private final UserRepository userRepository;
+    private final HttpServletRequest servletRequest;
+    private final JwtService jwtService;
 
-    public SignatureService(SignatureRepository signatureRepository) {
+    public SignatureService(SignatureRepository signatureRepository, UserRepository userRepository,
+            HttpServletRequest servletRequest, JwtService jwtService) {
         this.signatureRepository = signatureRepository;
+        this.userRepository = userRepository;
+        this.servletRequest = servletRequest;
+        this.jwtService = jwtService;
     }
 
-    public ResponseDto<Signature> get() {
-        Long id = (long) 1; // change with id from relation on authenticated user
-        Signature signature = signatureRepository.findById(id)
-            .orElseThrow(() -> new ResponseStatusException(404, null, null));
-        return new ResponseDto<>(200, "ok", signature);
+    public ResponseDto<?> getImage() {
+        Long userId = jwtService.extractUserId(servletRequest.getHeader("Authorization"));
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "forbidden"));
+        if (user.getVerifiedAt() == null)
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "user unverified");
+        Signature signature = user.getSignature();
+        if (signature == null)
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "signature not found");
+        String base64 = "data:" + signature.getType() + ";base64," + Base64.getEncoder().encodeToString(signature.getBytes());
+        return new ResponseDto<>(200, "ok", base64);
     }
 
-    public ResponseDto<Signature> store(Signature request) {
-        Signature signature = signatureRepository.save(request);
+    public ResponseDto<?> storeSign(MultipartFile image) throws IOException {
+        Long userId = jwtService.extractUserId(servletRequest.getHeader("Authorization"));
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "forbidden"));
+        if (user.getVerifiedAt() == null)
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "user unverified");
+        if (image == null || image.isEmpty())
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "forbidden");
+        if (image.getSize() > 2 * 1024 * 1024)
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "forbidden");
+        byte[] bytes = image.getBytes();
+        Signature signature = user.getSignature();
+        if (signature == null) {
+            signature = new Signature();
+            signature.setUser(user);
+            // signature.setIsEnabled(false);
+            signature.setCreatedAt(null);
+            // signature.setPassphrase(null);
+            // signature.setExpire(null);
+        }
+        signature.setBytes(bytes);
+        signature.setType(image.getContentType());
+        signatureRepository.save(signature); //
         return new ResponseDto<>(201, "created", signature);
     }
 
-    public ResponseDto<Signature> destroy() {
-        Long id = (long) 1; // change with id from relation on authenticated user
-        signatureRepository.deleteById(id);
-        return new ResponseDto<>(204, "no content", null);
+    public ResponseDto<?> storeSignBase64(byte[] bytes) {
+        Long userId = jwtService.extractUserId(servletRequest.getHeader("Authorization"));
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN));
+        if (user.getVerifiedAt() == null)
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "user unverified");
+        if (bytes == null)
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+        Signature signature = user.getSignature();
+        if (signature == null) {
+            signature = new Signature();
+            signature.setUser(user);
+            // signature.setIsEnabled(false);
+            signature.setType("image/png");
+            signature.setCreatedAt(null);
+            // signature.setPassphrase(null);
+            // signature.setExpire(null);
+        }
+        signature.setBytes(bytes);
+        signatureRepository.save(signature);
+        return new ResponseDto<>(201, "created", signature);
+    }
+
+    public ResponseDto<Signature> delete() {
+        Long userId = jwtService.extractUserId(servletRequest.getHeader("Authorization"));
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "forbidden"));
+        if (user.getVerifiedAt() == null)
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "user unverified");
+        Signature signature = user.getSignature();
+        if (signature == null)
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "signature not found");
+        user.setSignature(null);
+        userRepository.save(user);
+        return new ResponseDto<>(204, "signature deleted", null);
     }
 
 }

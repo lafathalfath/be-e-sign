@@ -1,5 +1,6 @@
 package org.bh_foundation.e_sign.services.implementations;
 
+import org.bh_foundation.e_sign.models.User;
 import org.bh_foundation.e_sign.repository.UserRepository;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -17,8 +18,10 @@ public class UserDetailsImplement implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        return userRepository.findByUsernameOrEmail(username)
+        User userEntity = userRepository.findByUsernameOrEmail(username)
             .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+        
+        return userEntity;
     }
 
 }
